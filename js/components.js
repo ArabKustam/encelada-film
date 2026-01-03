@@ -8,8 +8,9 @@ export function renderHeader() {
     return `
         <header class="bg-black bg-opacity-90 fixed w-full z-50 px-4 md:px-8 py-4">
             <nav class="flex items-center justify-between max-w-7xl mx-auto">
-                <a href="index.html" class="text-xl md:text-2xl lg:text-3xl font-bold text-red-600 hover:text-red-700 transition">
-                    🎬 Кинотеатр
+                <a href="index.html" class="text-xl md:text-2xl lg:text-3xl font-bold text-red-600 hover:text-red-700 transition flex items-center gap-2">
+                    <svg class="w-8 h-8 md:w-10 md:h-10" viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4h-2l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"></path></svg>
+                    <span>Кинотеатр</span>
                 </a>
                 
                 <!-- Search Bar -->
@@ -134,32 +135,32 @@ export function renderMovieCard(item, isTV = false) {
     const overview = truncateText(item.overview, 100) || 'Описание отсутствует';
 
     return `
-        <div class="movie-card cursor-pointer" data-id="${item.id}" data-type="${isTV ? 'tv' : 'movie'}">
-            <div class="relative group">
+        <a href="details.html?id=${item.id}&type=${isActuallyTV ? 'tv' : 'movie'}" class="movie-card block group" data-id="${item.id}" data-type="${isActuallyTV ? 'tv' : 'movie'}">
+            <div class="relative overflow-hidden rounded-lg shadow-lg">
                 <img 
                     src="${posterUrl}" 
                     alt="${title}"
-                    class="w-full h-auto rounded-lg shadow-lg"
+                    class="w-full h-auto transition duration-500 group-hover:scale-110"
                     loading="lazy"
                 >
-                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-70 transition duration-300 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-70 transition duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <div class="text-center px-4">
                         <p class="text-white text-sm mb-2">${overview}</p>
-                        <div class="flex items-center justify-center space-x-4 text-white text-sm">
-                            <span>⭐ ${rating}</span>
-                            ${year ? `<span>📅 ${year}</span>` : ''}
+                        <div class="flex items-center justify-center space-x-4 text-white text-sm font-bold">
+                            <span class="flex items-center gap-1"><svg class="w-4 h-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg> ${rating}</span>
+                            ${year ? `<span class="flex items-center gap-1"><svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> ${year}</span>` : ''}
                         </div>
                     </div>
                 </div>
             </div>
             <div class="mt-2">
-                <h3 class="text-white font-semibold text-sm md:text-base line-clamp-2">${title}</h3>
+                <h3 class="text-white font-semibold text-sm md:text-base line-clamp-2 leading-tight group-hover:text-red-500 transition">${title}</h3>
                 <div class="flex items-center space-x-2 mt-1">
-                    <span class="text-yellow-400 text-xs">⭐ ${rating}</span>
-                    ${year ? `<span class="text-gray-400 text-xs">${year}</span>` : ''}
+                    <span class="text-yellow-400 text-xs flex items-center gap-0.5"><svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg> ${rating}</span>
+                    ${year ? `<span class="text-gray-400 text-xs flex items-center gap-0.5"><svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> ${year}</span>` : ''}
                 </div>
             </div>
-        </div>
+        </a>
     `;
 }
 
@@ -198,21 +199,21 @@ export function renderHeroBanner(item, isTV = false) {
                         </h1>
                         <div class="flex items-center space-x-3 md:space-x-4 mb-3 md:mb-4 text-white text-sm md:text-base">
                             <span class="flex items-center space-x-1">
-                                <span>⭐</span>
+                                <svg class="w-4 h-4 md:w-5 md:h-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
                                 <span class="font-semibold">${rating}</span>
                             </span>
-                            ${year ? `<span>📅 ${year}</span>` : ''}
+                            ${year ? `<span class="flex items-center gap-1"><svg class="w-4 h-4 md:w-5 md:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> ${year}</span>` : ''}
                         </div>
                         <p class="text-white text-sm sm:text-base md:text-lg mb-4 md:mb-6 drop-shadow-md line-clamp-3 md:line-clamp-none">
                             ${overview || 'Описание отсутствует'}
                         </p>
                         <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                            <button class="px-4 py-2 sm:px-6 sm:py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded transition text-sm md:text-base">
+                            <a href="watch.html?id=${item.id}&type=${isActuallyTV ? 'tv' : 'movie'}" class="px-4 py-2 sm:px-6 sm:py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition text-sm md:text-base text-center">
                                 ▶ Смотреть
-                            </button>
-                            <button class="px-4 py-2 sm:px-6 sm:py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded transition text-sm md:text-base">
+                            </a>
+                            <a href="details.html?id=${item.id}&type=${isActuallyTV ? 'tv' : 'movie'}" class="px-4 py-2 sm:px-6 sm:py-3 bg-gray-800 bg-opacity-80 hover:bg-opacity-100 text-white font-semibold rounded-lg border border-gray-600 transition text-sm md:text-base text-center">
                                 ℹ Подробнее
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -369,3 +370,179 @@ export function renderFilters(genres, selectedGenres = [], onFilterChange) {
     `;
 }
 
+/**
+ * Render movie details page
+ */
+export function renderMovieDetails(item, type, credits = {}) {
+    if (!item) return '';
+
+    const isTV = type === 'tv';
+    const crew = credits.crew || [];
+
+    // Find directors or creators
+    const directors = crew.filter(c => c.job === 'Director').map(d => d.name);
+    const creators = item.created_by?.map(c => c.name) || [];
+    const authors = isTV ? creators : directors;
+    const title = isTV ? (item.name || item.original_name) : (item.title || item.original_title);
+    const releaseDate = isTV ? item.first_air_date : item.release_date;
+    const year = formatYear(releaseDate);
+    const rating = formatRating(item.vote_average);
+    const backdropUrl = getBackdropUrl(item.backdrop_path, 'original');
+    const posterUrl = getImageUrl(item.poster_path, 'w500');
+
+    // Status in library
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const libraryStatus = user.library?.[`${type}_${item.id}`] || 'none';
+
+    const getStatusLabel = (status) => {
+        const labels = {
+            'none': 'Добавить в список',
+            'watching': '<span class="flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> Смотрю</span>',
+            'planned': '<span class="flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> В планах</span>',
+            'watched': '<span class="flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Просмотрено</span>',
+            'dropped': '<span class="flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Брошено</span>'
+        };
+        return labels[status] || 'Добавить в список';
+    };
+
+    return `
+        <div class="relative min-h-screen max-w-full overflow-x-hidden">
+            <!-- Background Backdrop -->
+            <div class="absolute inset-0 h-[60vh] md:h-[80vh]">
+                <img src="${backdropUrl}" class="w-full h-full object-cover opacity-30 mask-image-gradient" alt="">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
+            </div>
+
+            <div class="relative z-10 max-w-7xl mx-auto px-4 md:px-8 pt-24 md:pt-32 pb-16">
+                <div class="flex flex-col md:flex-row gap-8 md:gap-12">
+                    <!-- Left Column: Poster -->
+                    <div class="w-[250px] md:w-[350px] mx-auto md:mx-0 flex-shrink-0">
+                        <img src="${posterUrl}" class="w-full rounded-2xl shadow-2xl border border-gray-800" alt="${title}">
+                        
+                        <!-- Actions -->
+                        <div class="mt-6 space-y-3">
+                            <a href="watch.html?id=${item.id}&type=${type}" class="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition flex items-center justify-center space-x-2 text-lg">
+                                <span>▶ СМОТРЕТЬ</span>
+                            </a>
+                            
+                            <!-- Status Selector -->
+                            <div class="relative group/status w-full">
+                                <button class="w-full py-3 bg-gray-900 border border-gray-700 hover:border-gray-500 text-white font-semibold rounded-xl transition flex items-center justify-between px-4">
+                                    <span>${getStatusLabel(libraryStatus)}</span>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>
+                                <div class="absolute left-0 right-0 bottom-full bg-[#1a1a1a] border border-gray-800 rounded-xl shadow-2xl overflow-hidden hidden group-hover/status:block z-50">
+                                    <button onclick="window.updateStatus('${item.id}', '${type}', 'watching')" class="w-full px-4 py-3 text-left hover:bg-gray-800 text-white transition flex items-center space-x-3"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> <span>Смотрю</span></button>
+                                    <button onclick="window.updateStatus('${item.id}', '${type}', 'planned')" class="w-full px-4 py-3 text-left hover:bg-gray-800 text-white transition flex items-center space-x-3"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>В планах</span></button>
+                                    <button onclick="window.updateStatus('${item.id}', '${type}', 'watched')" class="w-full px-4 py-3 text-left hover:bg-gray-800 text-white transition flex items-center space-x-3"><svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>Просмотрено</span></button>
+                                    <button onclick="window.updateStatus('${item.id}', '${type}', 'dropped')" class="w-full px-4 py-3 text-left hover:bg-gray-800 text-white transition flex items-center space-x-3"><svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>Брошено</span></button>
+                                    <button onclick="window.updateStatus('${item.id}', '${type}', 'none')" class="w-full px-4 py-3 text-left hover:bg-gray-800 text-gray-400 transition flex items-center space-x-3 border-t border-gray-800"><svg class="w-5 h-5 text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> <span>Удалить из списка</span></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Info -->
+                    <div class="flex-1 min-w-0 text-white">
+                        <div class="flex flex-wrap items-center gap-3 mb-4">
+                            <span class="px-2 py-0.5 bg-red-600 text-[10px] font-bold rounded uppercase">${type === 'tv' ? 'Сериал' : 'Фильм'}</span>
+                            <span class="text-gray-400 text-sm flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> ${year}</span>
+                            <div class="flex items-center space-x-1">
+                                <svg class="w-4 h-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                                <span class="font-bold">${rating}</span>
+                                <span class="text-gray-500 text-xs">(${item.vote_count})</span>
+                            </div>
+                        </div>
+                        
+                        <h1 class="text-3xl md:text-5xl lg:text-6xl font-black mb-4">${title}</h1>
+                        <p class="text-gray-400 text-lg md:text-xl font-medium mb-6 italic">"${item.tagline || ''}"</p>
+                        
+                        <div class="mb-8">
+                            <h2 class="text-xl font-bold mb-3 border-b border-red-600 pb-1 w-fit">О сериале</h2>
+                            <p class="text-gray-300 leading-relaxed text-lg">${item.overview || 'Описание отсутствует.'}</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 text-sm md:text-base mb-12">
+                            <div><span class="text-gray-500">Оригинальное название:</span> <span class="ml-2">${item.original_title || item.original_name}</span></div>
+                            <div><span class="text-gray-500">Жанры:</span> <span class="ml-2">${item.genres?.map(g => g.name).join(', ')}</span></div>
+                            <div><span class="text-gray-500">${isTV ? 'Создатели' : 'Режиссер'}:</span> <span class="ml-2">${authors.join(', ') || 'Н/Д'}</span></div>
+                            <div><span class="text-gray-500">Производство:</span> <span class="ml-2">${item.production_countries?.map(c => c.name).join(', ') || 'Н/Д'}</span></div>
+                            <div><span class="text-gray-500">Длительность:</span> <span class="ml-2">${item.runtime ? item.runtime + ' мин.' : (item.episode_run_time && item.episode_run_time[0] ? item.episode_run_time[0] + ' мин. (сер.)' : 'Н/Д')}</span></div>
+                            ${isTV ? `<div><span class="text-gray-500">Сезонов:</span> <span class="ml-2">${item.number_of_seasons}</span></div>` : ''}
+                        </div>
+
+                        <!-- Trailer Section -->
+                        <div id="trailer-container" class="mb-16 w-full max-w-4xl">
+                            <h2 class="text-2xl font-bold mb-6 flex items-center">
+                                <svg class="w-6 h-6 mr-2 text-red-600" fill="currentColor" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12zM10 7l6 4-6 4V7z"></path></svg> Трейлер
+                            </h2>
+                            <div id="trailer-player" class="aspect-video bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-800">
+                                <div class="w-full h-full flex items-center justify-center text-gray-500">Загрузка трейлера...</div>
+                            </div>
+                        </div>
+
+                        <!-- Cast Section -->
+                        <div id="cast-container" class="w-full overflow-hidden">
+                            <h2 class="text-2xl font-bold mb-6 flex items-center">
+                                <svg class="w-6 h-6 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 005.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> Актеры и создатели
+                            </h2>
+                            <div id="cast-list" class="flex space-x-6 overflow-x-auto pb-6 scrollbar-hide">
+                                <div class="text-gray-500">Загрузка актеров...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Render cast list
+ */
+export function renderCast(cast) {
+    if (!cast || cast.length === 0) return '<p class="text-gray-500">Информация об актерах недоступна</p>';
+
+    return cast.slice(0, 15).map(person => `
+        <div class="flex-shrink-0 w-24 md:w-32 group">
+            <div class="aspect-[2/3] mb-3 rounded-xl overflow-hidden border border-gray-800 group-hover:border-red-600 transition duration-300 shadow-lg">
+                <img 
+                    src="${getImageUrl(person.profile_path, 'w185')}" 
+                    class="w-full h-full object-cover transition duration-500 group-hover:scale-110" 
+                    alt="${person.name}"
+                    onerror="this.src='https://via.placeholder.com/185x278/1a1a1a/666666?text=Нет+фото'"
+                >
+            </div>
+            <div class="text-sm font-bold text-white truncate group-hover:text-red-500 transition">${person.name}</div>
+            <div class="text-[10px] md:text-xs text-gray-500 truncate">${person.character}</div>
+        </div>
+    `).join('');
+}
+
+/**
+ * Render trailer iframe
+ */
+export function renderTrailer(videos) {
+    if (!videos || videos.length === 0) {
+        return '<div class="w-full h-full flex items-center justify-center text-gray-500 bg-gray-900">Трейлер не найден</div>';
+    }
+
+    // Prefer Official Trailer, then Trailer, then any Video
+    const trailer = videos.find(v => v.type === 'Trailer' && v.site === 'YouTube' && v.official) ||
+        videos.find(v => v.type === 'Trailer' && v.site === 'YouTube') ||
+        videos.find(v => v.site === 'YouTube');
+
+    if (!trailer) {
+        return '<div class="w-full h-full flex items-center justify-center text-gray-500 bg-gray-900">Трейлер на YouTube не найден</div>';
+    }
+
+    return `
+        <iframe 
+            src="https://www.youtube.com/embed/${trailer.key}?autoplay=0&rel=0" 
+            class="w-full h-full" 
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen
+        ></iframe>
+    `;
+}

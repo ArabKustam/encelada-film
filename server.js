@@ -50,7 +50,8 @@ app.post('/api/auth/register', (req, res) => {
         password: hashPassword(password),
         settings: {
             include_adult: false
-        }
+        },
+        library: {} // { "movie_123": "watching", "tv_456": "planned" }
     };
 
     users.push(newUser);
@@ -86,6 +87,34 @@ app.post('/api/auth/settings', (req, res) => {
     if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
 
     users[userIndex].settings = { ...users[userIndex].settings, ...settings };
+    saveUsers(users);
+
+    const { password: _, ...userWithoutPassword } = users[userIndex];
+    res.json({ user: userWithoutPassword });
+});
+
+// Update Item in Library (Watching, Planned, etc.)
+app.post('/api/user/library', (req, res) => {
+    const { token, itemId, type, status } = req.body;
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+
+    const userId = parseInt(token.replace('fake-jwt-', ''));
+    const users = getUsers();
+    const userIndex = users.findIndex(u => u.id === userId);
+
+    if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
+
+    if (!users[userIndex].library) {
+        users[userIndex].library = {};
+    }
+
+    const key = `${type}_${itemId}`;
+    if (status === 'none') {
+        delete users[userIndex].library[key];
+    } else {
+        users[userIndex].library[key] = status;
+    }
+
     saveUsers(users);
 
     const { password: _, ...userWithoutPassword } = users[userIndex];

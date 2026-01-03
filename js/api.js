@@ -199,3 +199,39 @@ export async function getTVGenres() {
     return await apiRequest('/genre/tv/list');
 }
 
+/**
+ * Get item credits (cast and crew)
+ */
+export async function getItemCredits(type, id) {
+    return await apiRequest(`/${type}/${id}/credits`);
+}
+
+/**
+ * Get item videos (trailers, teasers)
+ */
+export async function getItemVideos(type, id) {
+    return await apiRequest(`/${type}/${id}/videos`);
+}
+
+/**
+ * Update user library status for an item
+ */
+export async function updateLibraryStatus(itemId, type, status) {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Unauthorized');
+
+    const response = await fetch('/api/user/library', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token.replace('Bearer ', ''), itemId, type, status })
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to update library status');
+    }
+
+    const data = await response.json();
+    localStorage.setItem('user', JSON.stringify(data.user));
+    return data.user;
+}
+
