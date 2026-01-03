@@ -7,7 +7,8 @@ dist/
 .env
 
 # Local data
-data/users.json
+data/*.json
+!data/.gitkeep
 
 # Logs
 npm-debug.log*
