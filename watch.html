@@ -19,7 +19,7 @@
 
     <script type="module">
         import { renderHeader, renderFooter } from './js/components.js';
-        import { getMovieDetails, getTVSeriesDetails } from './js/api.js';
+        import { getMovieDetails, getTVSeriesDetails, updateWatchProgress, addToHistory } from './js/api.js';
         import { initMobileMenu, updateAuthLinks, initSearch } from './js/utils.js';
 
         const app = document.getElementById('app');
@@ -43,6 +43,14 @@
                 const item = type === 'movie' ? await getMovieDetails(id) : await getTVSeriesDetails(id);
                 const title = item.title || item.name;
 
+                // Add to history
+                const user = JSON.parse(localStorage.getItem('user'));
+                if (user && localStorage.getItem('token')) {
+                    addToHistory(item, type).catch(err => console.error('History update failed:', err));
+                }
+
+                const currentProgress = user?.progress?.[`${type}_${id}`] || { season: 1, episode: 1 };
+
                 const main = document.createElement('main');
                 main.className = 'pt-24 pb-12 max-w-6xl mx-auto px-4';
                 main.innerHTML = `
@@ -63,6 +71,23 @@
                             </nav>
                             <h1 class="text-3xl md:text-4xl font-black">${title}</h1>
                         </div>
+                        
+                        ${type === 'tv' ? `
+                            <div class="flex items-center gap-4 bg-gray-900 p-3 rounded-xl border border-gray-800">
+                                <div class="flex flex-col">
+                                    <label class="text-[10px] text-gray-500 uppercase font-bold">Сезон</label>
+                                    <input type="number" id="season-input" value="${currentProgress.season}" min="1" class="bg-transparent text-white font-bold w-12 focus:outline-none">
+                                </div>
+                                <div class="w-px h-8 bg-gray-800"></div>
+                                <div class="flex flex-col">
+                                    <label class="text-[10px] text-gray-500 uppercase font-bold">Серия</label>
+                                    <input type="number" id="episode-input" value="${currentProgress.episode}" min="1" class="bg-transparent text-white font-bold w-12 focus:outline-none">
+                                </div>
+                                <button id="save-progress" class="ml-2 p-2 bg-red-600 rounded-lg hover:bg-red-700 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                </button>
+                            </div>
+                        ` : ''}
                     </div>
 
                     <div class="player-aspect bg-[#0a0a0a] rounded-2xl overflow-hidden shadow-2xl border border-gray-800 flex flex-col items-center justify-center relative group">
@@ -103,6 +128,26 @@
                     </div>
                 `;
                 app.appendChild(main);
+
+                // Progress saving logic
+                if (type === 'tv') {
+                    const saveBtn = document.getElementById('save-progress');
+                    saveBtn.addEventListener('click', async () => {
+                        const season = parseInt(document.getElementById('season-input').value);
+                        const episode = parseInt(document.getElementById('episode-input').value);
+
+                        try {
+                            const originalContent = saveBtn.innerHTML;
+                            saveBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+                            await updateWatchProgress(id, type, { season, episode });
+                            saveBtn.innerHTML = '<svg class="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                            setTimeout(() => { saveBtn.innerHTML = originalContent; }, 2000);
+                        } catch (err) {
+                            console.error('Failed to save progress:', err);
+                        }
+                    });
+                }
+
                 app.insertAdjacentHTML('beforeend', renderFooter());
 
             } catch (error) {

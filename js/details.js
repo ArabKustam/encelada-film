@@ -1,8 +1,8 @@
 import { renderHeader, renderFooter, renderMovieDetails, renderCast, renderTrailer } from './components.js';
-import { getMovieDetails, getTVSeriesDetails, getItemCredits, getItemVideos, updateLibraryStatus } from './api.js';
+import { getMovieDetails, getTVSeriesDetails, getItemCredits, getItemVideos, updateLibraryStatus, addToHistory } from './api.js';
 import { initMobileMenu, updateAuthLinks, initSearch } from './utils.js';
 
-const app = document.getElementById('app');
+let currentItem = null;
 
 async function initDetailsPage() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -28,6 +28,14 @@ async function initDetailsPage() {
             getItemCredits(type, id),
             getItemVideos(type, id)
         ]);
+
+        currentItem = item;
+
+        // Add to history
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user && localStorage.getItem('token')) {
+            addToHistory(item, type).catch(err => console.error('History update failed:', err));
+        }
 
         document.title = `${item.title || item.name} - Онлайн Кинотеатр`;
 
@@ -69,7 +77,7 @@ window.updateStatus = async (itemId, type, status) => {
     }
 
     try {
-        await updateLibraryStatus(itemId, type, status);
+        await updateLibraryStatus(itemId, type, status, currentItem);
         // Refresh page to show new status
         window.location.reload();
     } catch (error) {

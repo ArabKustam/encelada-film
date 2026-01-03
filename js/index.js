@@ -1,6 +1,6 @@
 // Main page logic
 import { renderHeader, renderFooter, renderHeroBanner, renderMovieRow } from './components.js';
-import { getTrending, getPopularMovies, getPopularTVSeries, getTopRatedMovies } from './api.js';
+import { getTrending, getPopularMovies, getPopularTVSeries, getTopRatedMovies, getAnime } from './api.js';
 import { showLoading, showError, initMobileMenu, updateAuthLinks, initSearch } from './utils.js';
 import { searchMulti } from './api.js';
 
@@ -67,8 +67,11 @@ async function initHomePage() {
             getTopRatedMovies(1)
         ]);
 
+        // Filter trending to avoid untranslated obscure items
+        trendingData.results = trendingData.results.filter(item => (item.vote_count || 0) >= 50);
+
         // Get featured movie for hero banner
-        const featuredMovie = trendingData.results[0];
+        const featuredMovie = trendingData.results[0] || popularMoviesData.results[0];
 
         // Render hero banner
         mainContent.innerHTML = renderHeroBanner(featuredMovie);
@@ -77,6 +80,12 @@ async function initHomePage() {
         const contentContainer = document.createElement('div');
         contentContainer.className = 'py-8 md:py-12';
         mainContent.appendChild(contentContainer);
+
+        // Render Recent History if exists
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (user.history && user.history.length > 0) {
+            contentContainer.innerHTML += renderMovieRow(user.history, 'Продолжить просмотр');
+        }
 
         // Render recommendations (using trending)
         const recommendations = trendingData.results.slice(1, 11);
@@ -87,6 +96,10 @@ async function initHomePage() {
 
         // Render popular TV series
         contentContainer.innerHTML += renderMovieRow(popularTVData.results.slice(0, 10), 'Популярные сериалы', true);
+
+        // Render popular anime
+        const animeData = await getAnime('tv', 1);
+        contentContainer.innerHTML += renderMovieRow(animeData.results.slice(0, 10), 'Популярное аниме', true);
 
         // Render top rated movies
         contentContainer.innerHTML += renderMovieRow(topRatedData.results.slice(0, 10), 'Лучшие фильмы');

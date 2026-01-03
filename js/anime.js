@@ -42,7 +42,7 @@ async function initAnimePage() {
 
         initSearch(performSearch, async (query) => {
             const data = await searchMulti(query);
-            return data.results || [];
+            return (data.results || []).filter(item => item.genre_ids?.includes(16));
         });
 
         window.addEventListener('executeSearch', (e) => {
@@ -89,6 +89,8 @@ async function loadAnime(page = 1, type = 'movie') {
         let data;
         if (isSearchMode) {
             data = await searchMulti(searchQuery, page);
+            // Client-side filter: ONLY include Animation (16)
+            data.results = (data.results || []).filter(item => item.genre_ids?.includes(16));
         } else {
             data = await getAnime(type, page, selectedGenres);
         }

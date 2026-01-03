@@ -110,7 +110,7 @@ async function loadTrending(type = 'all') {
             data = await getTrending(type, 'day');
         }
 
-        currentMovies = data.results || [];
+        currentMovies = (data.results || []).filter(item => (item.vote_count || 0) >= 50);
         currentType = type;
 
         renderContent();

@@ -42,7 +42,7 @@ async function initMoviesPage() {
 
         initSearch(performSearch, async (query) => {
             const data = await searchMovies(query);
-            return data.results || [];
+            return (data.results || []).filter(m => !m.genre_ids?.includes(16));
         });
 
         window.addEventListener('executeSearch', (e) => {
@@ -58,7 +58,7 @@ async function initMoviesPage() {
 
         // Fetch genres
         const genresData = await getMovieGenres();
-        genres = genresData.genres || [];
+        genres = (genresData.genres || []).filter(g => g.id !== 16);
 
         // Load movies
         await loadMovies();
@@ -89,11 +89,14 @@ async function loadMovies(page = 1, genreId = '') {
         let data;
         if (isSearchMode) {
             data = await searchMovies(searchQuery, page);
+            // Client-side filter for Anime/Animation in search
+            data.results = (data.results || []).filter(m => !m.genre_ids?.includes(16));
         } else if (selectedGenres.length > 0) {
             data = await getMovies({
                 page,
                 with_genres: selectedGenres.join(','),
-                sort_by: 'popularity.desc'
+                sort_by: 'popularity.desc',
+                without_genres: '16'
             });
         } else {
             data = await getPopularMovies(page);

@@ -365,6 +365,9 @@ export function initSearch(onSearch, onLiveResult) {
             if (e.key === 'Enter') {
                 onSearch(e.target.value.trim());
                 document.querySelectorAll('.search-live-results').forEach(c => c.classList.add('hidden'));
+                // Hide mobile menu on search
+                const mobileMenu = document.getElementById('mobile-menu');
+                if (mobileMenu) mobileMenu.classList.add('hidden');
             }
         });
         // Clear on ESC

@@ -537,12 +537,19 @@ export function renderTrailer(videos) {
     }
 
     return `
-        <iframe 
-            src="https://www.youtube.com/embed/${trailer.key}?autoplay=0&rel=0" 
-            class="w-full h-full" 
-            frameborder="0" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-            allowfullscreen
-        ></iframe>
+        <div class="relative w-full h-full bg-black group/trailer">
+            <!-- Loader Spinner -->
+            <div class="absolute inset-0 flex items-center justify-center z-0">
+                <div class="w-12 h-12 border-4 border-red-600/20 border-t-red-600 rounded-full animate-spin"></div>
+            </div>
+            
+            <iframe 
+                src="https://www.youtube.com/embed/${trailer.key}?autoplay=0&rel=0" 
+                class="relative z-10 w-full h-full" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen
+            ></iframe>
+        </div>
     `;
 }

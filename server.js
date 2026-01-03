@@ -51,7 +51,9 @@ app.post('/api/auth/register', (req, res) => {
         settings: {
             include_adult: false
         },
-        library: {} // { "movie_123": "watching", "tv_456": "planned" }
+        library: {}, // { "movie_123": "watching" }
+        history: [], // [{ id, type, title, poster, timestamp }]
+        progress: {} // { "tv_123": { season, episode } }
     };
 
     users.push(newUser);
@@ -112,11 +114,77 @@ app.post('/api/user/library', (req, res) => {
     if (status === 'none') {
         delete users[userIndex].library[key];
     } else {
-        users[userIndex].library[key] = status;
+        // Store with metadata for easy rendering in profile
+        const { item } = req.body;
+        users[userIndex].library[key] = {
+            status,
+            id: itemId,
+            type,
+            title: item?.title || item?.name,
+            poster: item?.poster_path || item?.poster,
+            rating: item?.vote_average || item?.rating,
+            timestamp: Date.now()
+        };
     }
 
     saveUsers(users);
 
+    const { password: _, ...userWithoutPassword } = users[userIndex];
+    res.json({ user: userWithoutPassword });
+});
+
+// Update Watch History (keep last 10)
+app.post('/api/user/history', (req, res) => {
+    const { token, item } = req.body;
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+
+    const userId = parseInt(token.replace('fake-jwt-', ''));
+    const users = getUsers();
+    const userIndex = users.findIndex(u => u.id === userId);
+
+    if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
+
+    if (!users[userIndex].history) users[userIndex].history = [];
+
+    // Remove if already exists to move to top
+    users[userIndex].history = users[userIndex].history.filter(h => h.id.toString() !== item.id.toString());
+
+    // Add to front
+    users[userIndex].history.unshift({
+        ...item,
+        timestamp: Date.now()
+    });
+
+    // Keep only last 10
+    if (users[userIndex].history.length > 10) {
+        users[userIndex].history = users[userIndex].history.slice(0, 10);
+    }
+
+    saveUsers(users);
+    const { password: _, ...userWithoutPassword } = users[userIndex];
+    res.json({ user: userWithoutPassword });
+});
+
+// Update TV Show/Movie Progress
+app.post('/api/user/progress', (req, res) => {
+    const { token, itemId, type, progress } = req.body;
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+
+    const userId = parseInt(token.replace('fake-jwt-', ''));
+    const users = getUsers();
+    const userIndex = users.findIndex(u => u.id === userId);
+
+    if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
+
+    if (!users[userIndex].progress) users[userIndex].progress = {};
+
+    const key = `${type}_${itemId}`;
+    users[userIndex].progress[key] = {
+        ...(users[userIndex].progress[key] || {}),
+        ...progress
+    };
+
+    saveUsers(users);
     const { password: _, ...userWithoutPassword } = users[userIndex];
     res.json({ user: userWithoutPassword });
 });

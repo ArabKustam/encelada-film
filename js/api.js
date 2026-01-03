@@ -41,32 +41,31 @@ export async function getTrending(mediaType = 'all', timeWindow = 'day') {
 }
 
 /**
- * Get popular movies
+ * Get popular movies (excluding animation and low-vote local items)
  */
 export async function getPopularMovies(page = 1) {
-    return await apiRequest('/movie/popular', { page });
+    return await apiRequest('/discover/movie', {
+        page,
+        sort_by: 'popularity.desc',
+        without_genres: '16',
+        'vote_count.gte': 500
+    });
 }
 
 /**
- * Get top rated movies
+ * Get top rated movies (excluding animation and low-vote local items)
  */
 export async function getTopRatedMovies(page = 1) {
-    return await apiRequest('/movie/top_rated', { page });
+    return await apiRequest('/discover/movie', {
+        page,
+        sort_by: 'vote_average.desc',
+        'vote_count.gte': 1000,
+        without_genres: '16'
+    });
 }
-
-/**
- * Get now playing movies
- */
-export async function getNowPlayingMovies(page = 1) {
-    return await apiRequest('/movie/now_playing', { page });
-}
-
-/**
- * Get upcoming movies
- */
-export async function getUpcomingMovies(page = 1) {
-    return await apiRequest('/movie/upcoming', { page });
-}
+// Keep these for backward compatibility or niche uses if needed
+export async function getNowPlayingMovies(page = 1) { return await apiRequest('/movie/now_playing', { page }); }
+export async function getUpcomingMovies(page = 1) { return await apiRequest('/movie/upcoming', { page }); }
 
 /**
  * Get movies by genre
@@ -74,6 +73,8 @@ export async function getUpcomingMovies(page = 1) {
 export async function getMoviesByGenre(genreId, page = 1) {
     return await apiRequest('/discover/movie', {
         with_genres: genreId,
+        without_genres: genreId.toString() === '16' ? '' : '16',
+        'vote_count.gte': 100,
         page
     });
 }
@@ -82,7 +83,11 @@ export async function getMoviesByGenre(genreId, page = 1) {
  * Get all movies with filters
  */
 export async function getMovies(params = {}) {
-    return await apiRequest('/discover/movie', params);
+    return await apiRequest('/discover/movie', {
+        without_genres: '16',
+        'vote_count.gte': 300,
+        ...params
+    });
 }
 
 /**
@@ -93,24 +98,27 @@ export async function getMovieDetails(movieId) {
 }
 
 /**
- * Get popular TV series
+ * Get popular TV series (excluding animation and low-vote local items)
  */
 export async function getPopularTVSeries(page = 1) {
-    return await apiRequest('/tv/popular', { page });
+    return await apiRequest('/discover/tv', {
+        page,
+        sort_by: 'popularity.desc',
+        without_genres: '16',
+        'vote_count.gte': 200
+    });
 }
 
 /**
- * Get top rated TV series
+ * Get top rated TV series (excluding animation and low-vote local items)
  */
 export async function getTopRatedTVSeries(page = 1) {
-    return await apiRequest('/tv/top_rated', { page });
-}
-
-/**
- * Get TV series on the air
- */
-export async function getTVSeriesOnTheAir(page = 1) {
-    return await apiRequest('/tv/on_the_air', { page });
+    return await apiRequest('/discover/tv', {
+        page,
+        sort_by: 'vote_average.desc',
+        'vote_count.gte': 500,
+        without_genres: '16'
+    });
 }
 
 /**
@@ -119,6 +127,8 @@ export async function getTVSeriesOnTheAir(page = 1) {
 export async function getTVSeriesByGenre(genreId, page = 1) {
     return await apiRequest('/discover/tv', {
         with_genres: genreId,
+        without_genres: genreId.toString() === '16' ? '' : '16',
+        'vote_count.gte': 50,
         page
     });
 }
@@ -127,7 +137,11 @@ export async function getTVSeriesByGenre(genreId, page = 1) {
  * Get all TV series with filters
  */
 export async function getTVSeries(params = {}) {
-    return await apiRequest('/discover/tv', params);
+    return await apiRequest('/discover/tv', {
+        without_genres: '16',
+        'vote_count.gte': 100,
+        ...params
+    });
 }
 
 /**
@@ -145,6 +159,7 @@ export async function getAnime(mediaType = 'movie', page = 1, extraGenres = []) 
     const params = {
         with_genres: genres,
         with_keywords: '210024', // Anime keyword ID
+        'vote_count.gte': 20,
         page
     };
 
@@ -216,14 +231,14 @@ export async function getItemVideos(type, id) {
 /**
  * Update user library status for an item
  */
-export async function updateLibraryStatus(itemId, type, status) {
+export async function updateLibraryStatus(itemId, type, status, item = null) {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('Unauthorized');
 
     const response = await fetch('/api/user/library', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: token.replace('Bearer ', ''), itemId, type, status })
+        body: JSON.stringify({ token: token.replace('Bearer ', ''), itemId, type, status, item })
     });
 
     if (!response.ok) {
@@ -233,5 +248,52 @@ export async function updateLibraryStatus(itemId, type, status) {
     const data = await response.json();
     localStorage.setItem('user', JSON.stringify(data.user));
     return data.user;
+}
+
+/**
+ * Add item to watch history
+ */
+export async function addToHistory(item, type) {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const historyItem = {
+        id: item.id,
+        media_type: type,
+        title: item.title || item.name,
+        name: item.name || item.title,
+        poster_path: item.poster_path || item.poster,
+        vote_average: item.vote_average || item.rating
+    };
+
+    const response = await fetch('/api/user/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token.replace('Bearer ', ''), item: historyItem })
+    });
+
+    if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('user', JSON.stringify(data.user));
+    }
+}
+
+/**
+ * Update viewing progress (season/episode)
+ */
+export async function updateWatchProgress(itemId, type, progress) {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const response = await fetch('/api/user/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token.replace('Bearer ', ''), itemId, type, progress })
+    });
+
+    if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('user', JSON.stringify(data.user));
+    }
 }
 
