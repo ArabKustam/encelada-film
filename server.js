@@ -5,6 +5,12 @@ require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
+
+// Models
+const User = require('./backend/models/User');
+const Comment = require('./backend/models/Comment');
+const TmdbCache = require('./backend/models/TmdbCache');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,124 +18,141 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const USERS_FILE = path.join(__dirname, 'data', 'users.json');
-const COMMENTS_FILE = path.join(__dirname, 'data', 'comments.json');
+// MongoDB Connection
+console.log('⏳ Connecting to MongoDB...');
+mongoose.connect(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 10000, // 10 seconds timeout
+    socketTimeoutMS: 45000,
+})
+    .then(() => console.log('✅ Connected to MongoDB'))
+    .catch(err => {
+        console.error('❌ MongoDB Connection Error:', err.message);
+        console.error('Check your MONGODB_URI and IP whitelist in Atlas.');
+    });
+
 
 const pendingAuths = {};
-const tmdbCache = new Map();
-const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours for persistent cache
 
-if (!fs.existsSync(path.join(__dirname, 'data'))) {
-    fs.mkdirSync(path.join(__dirname, 'data'));
-}
-if (!fs.existsSync(USERS_FILE)) {
-    fs.writeFileSync(USERS_FILE, JSON.stringify([]));
-}
-if (!fs.existsSync(COMMENTS_FILE)) {
-    fs.writeFileSync(COMMENTS_FILE, JSON.stringify([]));
-}
-
-// Utility to read files
-const getUsers = () => JSON.parse(fs.readFileSync(USERS_FILE));
-const saveUsers = (users) => fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-
-const getComments = () => JSON.parse(fs.readFileSync(COMMENTS_FILE));
-const saveComments = (comments) => fs.writeFileSync(COMMENTS_FILE, JSON.stringify(comments, null, 2));
-
-// Hash password
+// Hashing utility remains the same
 const hashPassword = (password) => {
     return crypto.createHash('sha256').update(password).digest('hex');
 };
+
 
 /**
  * Authentication Endpoints
  */
 
 // Register
-app.post('/api/auth/register', (req, res) => {
-    const { username, email, password } = req.body;
-    const users = getUsers();
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { username, email, password } = req.body;
+        const existingUser = await User.findOne({ $or: [{ username }, { email }] });
 
-    if (users.find(u => u.username === username || u.email === email)) {
-        return res.status(400).json({ error: 'Пользователь уже существует' });
+        if (existingUser) {
+            return res.status(400).json({ error: 'Пользователь уже существует' });
+        }
+
+        const newUser = new User({
+            username,
+            email,
+            password: hashPassword(password)
+        });
+
+        await newUser.save();
+
+        const { password: _, ...userWithoutPassword } = newUser.toObject();
+        res.json({ user: userWithoutPassword, token: `fake-jwt-${newUser._id}` });
+    } catch (err) {
+        console.error('[Register] Error:', err);
+        res.status(500).json({ error: 'Server error' });
     }
-
-    const newUser = {
-        id: Date.now(),
-        username,
-        email,
-        password: hashPassword(password),
-        settings: {
-            include_adult: false
-        },
-        library: {}, // { "movie_123": "watching" }
-        history: [], // [{ id, type, title, poster, timestamp }]
-        progress: {}, // { "tv_123": { season, episode } }
-        ratings: {} // { "movie_123": 8 }
-    };
-
-    users.push(newUser);
-    saveUsers(users);
-
-    const { password: _, ...userWithoutPassword } = newUser;
-    res.json({ user: userWithoutPassword, token: `fake-jwt-${newUser.id}` });
 });
 
 // Login
-app.post('/api/auth/login', (req, res) => {
-    const { email, password } = req.body;
-    const users = getUsers();
-    const user = users.find(u => u.email === email && u.password === hashPassword(password));
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email, password: hashPassword(password) });
 
-    if (!user) {
-        return res.status(401).json({ error: 'Неверный email или пароль' });
+        if (!user) {
+            return res.status(401).json({ error: 'Неверный email или пароль' });
+        }
+
+        const { password: _, ...userWithoutPassword } = user.toObject();
+        res.json({ user: userWithoutPassword, token: `fake-jwt-${user._id}` });
+    } catch (err) {
+        console.error('[Login] Error:', err);
+        res.status(500).json({ error: 'Server error' });
     }
-
-    const { password: _, ...userWithoutPassword } = user;
-    res.json({ user: userWithoutPassword, token: `fake-jwt-${user.id}` });
 });
+
+
+// Helper to get userId from token
+const getUserId = (token) => {
+    if (!token) return null;
+    const id = token.replace('fake-jwt-', '').replace('Bearer ', '');
+    return mongoose.Types.ObjectId.isValid(id) ? id : null;
+};
+
+// Sync User Data
+app.post('/api/user/sync', async (req, res) => {
+    try {
+        const userId = getUserId(req.body.token);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const { password: _, ...safeUser } = user.toObject();
+        res.json({ user: safeUser });
+    } catch (err) {
+        console.error('[Sync] Error:', err);
+        res.status(500).json({ error: 'Sync failed' });
+    }
+});
+
 
 // Update Settings
-app.post('/api/auth/settings', (req, res) => {
-    const { token, settings } = req.body;
-    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+app.post('/api/auth/settings', async (req, res) => {
+    try {
+        const { token, settings } = req.body;
+        const userId = getUserId(token);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const userId = parseInt(token.replace('fake-jwt-', ''));
-    const users = getUsers();
-    const userIndex = users.findIndex(u => u.id === userId);
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { $set: { settings: settings } },
+            { new: true }
+        );
 
-    if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
-    users[userIndex].settings = { ...users[userIndex].settings, ...settings };
-    saveUsers(users);
-
-    const { password: _, ...userWithoutPassword } = users[userIndex];
-    res.json({ user: userWithoutPassword });
+        const { password: _, ...userWithoutPassword } = user.toObject();
+        res.json({ user: userWithoutPassword });
+    } catch (err) {
+        res.status(500).json({ error: 'Update settings failed' });
+    }
 });
 
+
 // Update Item in Library (Watching, Planned, etc.)
-app.post('/api/user/library', (req, res) => {
+app.post('/api/user/library', async (req, res) => {
     try {
         const { token, itemId, type, status } = req.body;
-        if (!token) return res.status(401).json({ error: 'Unauthorized' });
+        const userId = getUserId(token);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-        const userId = parseInt(token.replace('fake-jwt-', ''));
-        const users = getUsers();
-        const userIndex = users.findIndex(u => u.id === userId);
-
-        if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
-
-        if (!users[userIndex].library) {
-            users[userIndex].library = {};
-        }
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
         const key = `${type}_${itemId}`;
         if (status === 'none') {
-            delete users[userIndex].library[key];
+            user.library.delete(key);
         } else {
-            // Store with metadata for easy rendering in profile
             const { item } = req.body;
-            users[userIndex].library[key] = {
+            user.library.set(key, {
                 status,
                 id: itemId,
                 type,
@@ -137,82 +160,76 @@ app.post('/api/user/library', (req, res) => {
                 poster: item?.poster_path || item?.poster,
                 rating: item?.vote_average || item?.rating,
                 timestamp: Date.now()
-            };
+            });
         }
 
-        saveUsers(users);
-
-        const { password: _, ...userWithoutPassword } = users[userIndex];
+        await user.save();
+        const { password: _, ...userWithoutPassword } = user.toObject();
         res.json({ success: true, user: userWithoutPassword });
     } catch (err) {
         console.error('[Library] Server Error:', err);
         res.status(500).json({ error: 'Failed to update library' });
     }
 });
+
 // Clear Watch History
-app.delete('/api/user/history/clear', (req, res) => {
-    const { token } = req.body;
-    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+app.delete('/api/user/history/clear', async (req, res) => {
+    try {
+        const userId = getUserId(req.body.token);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const userId = parseInt(token.replace('fake-jwt-', ''));
-    const users = getUsers();
-    const userIndex = users.findIndex(u => u.id === userId);
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { $set: { history: [] } },
+            { new: true }
+        );
 
-    if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
-    users[userIndex].history = [];
-    saveUsers(users);
-
-    const { password: _, ...userWithoutPassword } = users[userIndex];
-    res.json({ user: userWithoutPassword });
+        const { password: _, ...userWithoutPassword } = user.toObject();
+        res.json({ user: userWithoutPassword });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to clear history' });
+    }
 });
 
+
 // Update Profile (Username/Avatar)
-app.post('/api/user/update', (req, res) => {
+app.post('/api/user/update', async (req, res) => {
     try {
-        const { token, username, avatar } = req.body;
-        if (!token) return res.status(401).json({ error: 'Unauthorized' });
+        const { token, username, avatar, tgUsername } = req.body;
+        const userId = getUserId(token);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-        const userId = parseInt(token.replace('fake-jwt-', ''));
-        const users = getUsers();
-        const userIndex = users.findIndex(u => u.id === userId);
+        const updateData = {};
+        if (username) updateData.username = username;
+        if (avatar !== undefined) updateData.avatar = avatar;
+        if (tgUsername !== undefined) updateData.tgUsername = tgUsername;
 
-        if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
+        const user = await User.findByIdAndUpdate(userId, { $set: updateData }, { new: true });
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
-        if (username) users[userIndex].username = username;
-        if (avatar !== undefined) users[userIndex].avatar = avatar;
-        if (tgUsername !== undefined) users[userIndex].tgUsername = tgUsername;
-
-        saveUsers(users);
-        const { password: _, ...userWithoutPassword } = users[userIndex];
+        const { password: _, ...userWithoutPassword } = user.toObject();
         res.json({ success: true, user: userWithoutPassword });
     } catch (err) {
         res.status(500).json({ error: 'Failed to update profile' });
     }
 });
 
+
 // Update Watch History (keep last 20)
-app.post('/api/user/history', (req, res) => {
+app.post('/api/user/history', async (req, res) => {
     try {
         const { token, item } = req.body;
-        if (!token) return res.status(401).json({ error: 'Unauthorized' });
+        const userId = getUserId(token);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-        const userIdStr = token.replace('fake-jwt-', '').trim();
-        const userId = parseInt(userIdStr);
-        const users = getUsers();
-        const userIndex = users.findIndex(u => u.id === userId || u.id.toString() === userIdStr);
-
-        if (userIndex === -1) {
-            console.error(`[History] User not found for ID: ${userIdStr}`);
-            return res.status(404).json({ error: 'User not found' });
-        }
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
         if (!item || (!item.id && !item.tmdbId)) {
-            console.error(`[History] Invalid item:`, item);
             return res.status(400).json({ error: 'Invalid item data' });
         }
-
-        if (!users[userIndex].history) users[userIndex].history = [];
 
         // Normalize data
         const historyItem = {
@@ -224,18 +241,16 @@ app.post('/api/user/history', (req, res) => {
             timestamp: Date.now()
         };
 
-        console.log(`[History] Success: Added "${historyItem.title}" (${historyItem.type}) for ${users[userIndex].username}`);
+        // Move to top and filter duplicates
+        user.history = user.history.filter(h => h.id !== historyItem.id);
+        user.history.unshift(historyItem);
 
-        // Move to top
-        users[userIndex].history = users[userIndex].history.filter(h => h.id.toString() !== historyItem.id);
-        users[userIndex].history.unshift(historyItem);
-
-        if (users[userIndex].history.length > 20) {
-            users[userIndex].history = users[userIndex].history.slice(0, 20);
+        if (user.history.length > 20) {
+            user.history = user.history.slice(0, 20);
         }
 
-        saveUsers(users);
-        const { password: _, ...safeUser } = users[userIndex];
+        await user.save();
+        const { password: _, ...safeUser } = user.toObject();
         res.json({ success: true, user: safeUser });
     } catch (err) {
         console.error('[History] Server Error:', err);
@@ -243,59 +258,56 @@ app.post('/api/user/history', (req, res) => {
     }
 });
 
+
 // Delete from Watch History
-app.delete('/api/user/history', (req, res) => {
-    const { token, itemId } = req.body;
-    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+app.delete('/api/user/history', async (req, res) => {
+    try {
+        const { token, itemId } = req.body;
+        const userId = getUserId(token);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const userId = parseInt(token.replace('fake-jwt-', ''));
-    const users = getUsers();
-    const userIndex = users.findIndex(u => u.id === userId);
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
-    if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
+        user.history = user.history.filter(h => h.id !== itemId.toString());
+        await user.save();
 
-    console.log(`[History] Removing item ${itemId} for user ${users[userIndex].username}`);
-
-    if (users[userIndex].history) {
-        users[userIndex].history = users[userIndex].history.filter(h => h.id.toString() !== itemId.toString());
+        const { password: _, ...userWithoutPassword } = user.toObject();
+        res.json({ user: userWithoutPassword });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to delete from history' });
     }
-
-    saveUsers(users);
-    const { password: _, ...userWithoutPassword } = users[userIndex];
-    res.json({ user: userWithoutPassword });
 });
 
+
 // Update TV Show/Movie Progress
-app.post('/api/user/progress', (req, res) => {
+app.post('/api/user/progress', async (req, res) => {
     try {
         const { token, itemId, type, progress } = req.body;
-        if (!token) return res.status(401).json({ error: 'Unauthorized' });
+        const userId = getUserId(token);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-        const userId = parseInt(token.replace('fake-jwt-', ''));
-        const users = getUsers();
-        const userIndex = users.findIndex(u => u.id === userId);
-
-        if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
-
-        if (!users[userIndex].progress) users[userIndex].progress = {};
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
         const key = `${type}_${itemId}`;
+        const currentProgress = user.progress.get(key) || {};
 
-        // Merge progress data
-        users[userIndex].progress[key] = {
-            ...(users[userIndex].progress[key] || {}),
+        user.progress.set(key, {
+            ...currentProgress,
             ...progress,
             updatedAt: Date.now()
-        };
+        });
 
-        saveUsers(users);
-        const { password: _, ...userWithoutPassword } = users[userIndex];
+        await user.save();
+        const { password: _, ...userWithoutPassword } = user.toObject();
         res.json({ success: true, user: userWithoutPassword });
     } catch (err) {
         console.error('[Progress] Server Error:', err);
         res.status(500).json({ error: 'Failed to update progress' });
     }
 });
+
 
 // API endpoint to get video players
 // API endpoint to get video players
@@ -413,17 +425,16 @@ app.get('/api/tmdb/*', async (req, res) => {
         const token = req.headers['authorization'];
         let includeAdult = false;
 
-        if (token && token.startsWith('Bearer fake-jwt-')) {
-            const userId = parseInt(token.replace('Bearer fake-jwt-', ''));
-            const users = getUsers();
-            const user = users.find(u => u.id === userId);
+        const userId = getUserId(token);
+        if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+            const user = await User.findById(userId);
             if (user && user.settings) {
                 includeAdult = user.settings.include_adult;
             }
         }
 
         const cacheKey = `${tmdbPath}_${JSON.stringify(req.query)}_${includeAdult}`;
-        const cached = tmdbCache.get(cacheKey);
+        const cached = await TmdbCache.findOne({ key: cacheKey });
 
         if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
             return res.json(cached.data);
@@ -441,35 +452,18 @@ app.get('/api/tmdb/*', async (req, res) => {
 
         // Backend safety filter for results
         if (!includeAdult && data) {
-            // Refined keywords: focus on explicit terms, exclude common words that cause false positives
             const nsfwKeywords = [
                 'hentai', 'porn', 'порно', 'erotica', 'эротика',
                 'uncensored', 'без цензуры', 'naked', 'голая', 'голый',
                 'ecchi', 'экки', 'экчи', 'hentai-anime', 'хентай-аниме'
             ];
 
-            // "Soft" keywords that only trigger if the item is also flagged as adult or has other suspicious traits
-            const softKeywords = ['sex', 'секс', 'adult', 'для взрослых', '18+'];
-
             const checkUnsafe = (item) => {
                 if (!item) return false;
-
-                // 1. Strict TMDB flag
                 if (item.adult === true) return true;
-
-                // 2. Genre check (Adult genre ID is 10749 for Romance, but there is no specific Adult genre in TMDB standard movie list usually, 
-                //    however, we can check for keywords/titles)
-
                 const title = (item.title || item.name || item.original_title || item.original_name || '').toLowerCase();
                 const overview = (item.overview || '').toLowerCase();
-
-                // Check strict keywords
                 if (nsfwKeywords.some(kw => title.includes(kw) || overview.includes(kw))) return true;
-
-                // Check soft keywords ONLY if they are prominent in the title AND it's a suspicious media type or has no votes
-                // For now, let's just make it title-only for soft keywords to allow "Sex Education" but maybe block "Sex: The Movie"
-                // Actually, let's just omit "sex" from auto-block and rely on TMDB's 'adult' flag for mainstream content.
-
                 return false;
             };
 
@@ -485,8 +479,12 @@ app.get('/api/tmdb/*', async (req, res) => {
             }
         }
 
-        // Cache the result
-        tmdbCache.set(cacheKey, { data, timestamp: Date.now() });
+        // Cache the result in DB
+        await TmdbCache.findOneAndUpdate(
+            { key: cacheKey },
+            { data, timestamp: Date.now() },
+            { upsert: true, new: true }
+        );
 
         res.json(data);
     } catch (error) {
@@ -495,105 +493,99 @@ app.get('/api/tmdb/*', async (req, res) => {
     }
 });
 
+
 // --- User Ratings ---
-app.post('/api/user/rate', (req, res) => {
+app.post('/api/user/rate', async (req, res) => {
     try {
         const { token, itemId, type, rating } = req.body;
-        if (!token) return res.status(401).json({ error: 'Unauthorized' });
+        const userId = getUserId(token);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-        const userId = parseInt(token.replace('fake-jwt-', ''));
-        const users = getUsers();
-        const userIndex = users.findIndex(u => u.id === userId);
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
-        if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
+        user.ratings.set(`${type}_${itemId}`, rating);
+        await user.save();
 
-        if (!users[userIndex].ratings) users[userIndex].ratings = {};
-
-        users[userIndex].ratings[`${type}_${itemId}`] = rating;
-
-        saveUsers(users);
-        const { password: _, ...userWithoutPassword } = users[userIndex];
+        const { password: _, ...userWithoutPassword } = user.toObject();
         res.json({ success: true, user: userWithoutPassword });
     } catch (err) {
         res.status(500).json({ error: 'Failed to rate' });
     }
 });
 
+
 // --- Comments System ---
 
 // Get comments for a movie/series
-app.get('/api/comments/:type/:id', (req, res) => {
-    const { type, id } = req.params;
-    const comments = getComments();
-    const filtered = comments.filter(c => c.mediaType === type && c.mediaId.toString() === id.toString());
-    res.json(filtered);
+app.get('/api/comments/:type/:id', async (req, res) => {
+    try {
+        const { type, id } = req.params;
+        const comments = await Comment.find({ mediaType: type, mediaId: id.toString() }).sort({ timestamp: -1 });
+        res.json(comments);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch comments' });
+    }
 });
 
+
 // Post a comment or reply
-app.post('/api/comments', (req, res) => {
+app.post('/api/comments', async (req, res) => {
     try {
         const { token, mediaId, mediaType, text, isSpoiler, parentId } = req.body;
-        if (!token) return res.status(401).json({ error: 'Unauthorized' });
+        const userId = getUserId(token);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-        const userId = parseInt(token.replace('fake-jwt-', ''));
-        const users = getUsers();
-        const user = users.find(u => u.id === userId);
-
+        const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
-        const comments = getComments();
-        const newComment = {
-            id: Date.now().toString(),
-            userId: user.id,
+        const newComment = new Comment({
+            userId: user._id,
             username: user.username,
-            userRating: user.ratings?.[`${mediaType}_${mediaId}`] || null,
+            userRating: user.ratings.get(`${mediaType}_${mediaId}`) || null,
             mediaId: mediaId.toString(),
             mediaType,
             text: text.substring(0, 1500),
             isSpoiler: !!isSpoiler,
             parentId: parentId || null,
-            likes: [],
-            dislikes: [],
             timestamp: Date.now()
-        };
+        });
 
-        comments.push(newComment);
-        saveComments(comments);
+        await newComment.save();
         res.json({ success: true, comment: newComment });
     } catch (err) {
+        console.error('[Comments] Error:', err);
         res.status(500).json({ error: 'Failed to post comment' });
     }
 });
 
+
 // Like/Dislike a comment
-app.post('/api/comments/:id/vote', (req, res) => {
+app.post('/api/comments/:id/vote', async (req, res) => {
     try {
         const { token, voteType } = req.body; // 'like' or 'dislike'
         const { id } = req.params;
-        if (!token) return res.status(401).json({ error: 'Unauthorized' });
+        const userId = getUserId(token);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-        const userId = parseInt(token.replace('fake-jwt-', ''));
-        const comments = getComments();
-        const commentIndex = comments.findIndex(c => c.id === id);
-
-        if (commentIndex === -1) return res.status(404).json({ error: 'Comment not found' });
-
-        const comment = comments[commentIndex];
+        const comment = await Comment.findById(id);
+        if (!comment) return res.status(404).json({ error: 'Comment not found' });
 
         // Remove existing votes
-        comment.likes = (comment.likes || []).filter(uid => uid !== userId);
-        comment.dislikes = (comment.dislikes || []).filter(uid => uid !== userId);
+        comment.likes = comment.likes.filter(uid => uid.toString() !== userId.toString());
+        comment.dislikes = comment.dislikes.filter(uid => uid.toString() !== userId.toString());
 
         // Add new vote if not removing
         if (voteType === 'like') comment.likes.push(userId);
         if (voteType === 'dislike') comment.dislikes.push(userId);
 
-        saveComments(comments);
+        await comment.save();
         res.json({ success: true, comment });
     } catch (err) {
         res.status(500).json({ error: 'Failed to vote' });
     }
 });
+
 
 /**
  * Telegram Authentication Logic
@@ -647,38 +639,31 @@ async function startTelegramBot() {
                             }
 
                             // Create or update user
-                            const users = getUsers();
-                            let user = users.find(u => u.telegramId === from.id);
+                            let user = await User.findOne({ telegramId: from.id });
 
                             if (!user) {
-                                user = {
-                                    id: Date.now(),
+                                user = new User({
                                     telegramId: from.id,
                                     username: from.username || from.first_name || `user_${from.id}`,
                                     tgUsername: from.username || null,
                                     avatar: avatar,
                                     email: `tg_${from.id}@telegram.com`,
-                                    password: hashPassword(Math.random().toString()),
-                                    settings: { include_adult: false },
-                                    library: {},
-                                    history: [],
-                                    progress: {},
-                                    ratings: {}
-                                };
-                                users.push(user);
+                                    password: hashPassword(Math.random().toString())
+                                });
                             } else {
                                 user.tgUsername = from.username || user.tgUsername;
                                 user.avatar = avatar || user.avatar;
                             }
 
-                            saveUsers(users);
+                            await user.save();
 
-                            const { password: _, ...safeUser } = user;
+                            const { password: _, ...safeUser } = user.toObject();
                             pendingAuths[tempToken] = {
                                 status: 'success',
                                 user: safeUser,
-                                token: `fake-jwt-${user.id}`
+                                token: `fake-jwt-${user._id}`
                             };
+
 
                             await axios.post(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
                                 chat_id: chatId,

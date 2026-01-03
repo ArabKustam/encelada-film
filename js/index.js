@@ -9,6 +9,10 @@ let isSearchActive = false;
 
 async function initHomePage() {
     try {
+        // Sync user data if logged in
+        const { syncUser } = await import('./api.js');
+        await syncUser();
+
         // Clear app and render structure
         app.innerHTML = '';
 
@@ -63,53 +67,51 @@ async function initHomePage() {
 
         showLoading(mainContent);
 
-        // Fetch data in parallel
-        const [trendingData, popularMoviesData, popularTVData, topRatedData] = await Promise.all([
-            getTrending('all', 'day'),
-            getPopularMovies(1),
-            getPopularTVSeries(1),
-            getTopRatedMovies(1)
-        ]);
-
-        // Filter trending to avoid untranslated obscure items
+        // 1. Fetch Trending FIRST for Hero Banner
+        const trendingData = await getTrending('all', 'day');
         trendingData.results = trendingData.results.filter(item => (item.vote_count || 0) >= 50);
+        const featuredMovie = trendingData.results[0];
 
-        // Get featured movie for hero banner
-        const featuredMovie = trendingData.results[0] || popularMoviesData.results[0];
-
-        // Render hero banner
+        // 2. Render Hero Banner immediately
         mainContent.innerHTML = renderHeroBanner(featuredMovie);
 
-        // Create content container
+        // 3. Create content container for rows
         const contentContainer = document.createElement('div');
         contentContainer.className = 'py-8 md:py-12';
         mainContent.appendChild(contentContainer);
 
-        // Render Recent History if exists
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        if (user.history && user.history.length > 0) {
-            contentContainer.innerHTML += renderMovieRow(user.history, 'Продолжить просмотр');
-        }
-
-        // Render recommendations (using trending)
+        // 4. Render recommendations (from trending) immediately
         const recommendations = trendingData.results.slice(1, 11);
         contentContainer.innerHTML += renderMovieRow(recommendations, 'Рекомендации для вас');
 
-        // Render popular movies
-        contentContainer.innerHTML += renderMovieRow(popularMoviesData.results.slice(0, 10), 'Популярные фильмы');
+        // 5. Fetch everything else in parallel
+        Promise.all([
+            getPopularMovies(1),
+            getPopularTVSeries(1),
+            getTopRatedMovies(1),
+            getAnime('tv', 1)
+        ]).then(([popularMoviesData, popularTVData, topRatedData, animeData]) => {
+            // Render rows as they come (or all together here for simplicity but after banner)
 
-        // Render popular TV series
-        contentContainer.innerHTML += renderMovieRow(popularTVData.results.slice(0, 10), 'Популярные сериалы', true);
+            // Render Recent History if exists
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (user.history && user.history.length > 0) {
+                // Prepend history
+                const historyHtml = renderMovieRow(user.history, 'Продолжить просмотр');
+                contentContainer.insertAdjacentHTML('afterbegin', historyHtml);
+            }
 
-        // Render popular anime
-        const animeData = await getAnime('tv', 1);
-        contentContainer.innerHTML += renderMovieRow(animeData.results.slice(0, 10), 'Популярное аниме', true);
-
-        // Render top rated movies
-        contentContainer.innerHTML += renderMovieRow(topRatedData.results.slice(0, 10), 'Лучшие фильмы');
+            contentContainer.innerHTML += renderMovieRow(popularMoviesData.results.slice(0, 10), 'Популярные фильмы');
+            contentContainer.innerHTML += renderMovieRow(popularTVData.results.slice(0, 10), 'Популярные сериалы', true);
+            contentContainer.innerHTML += renderMovieRow(animeData.results.slice(0, 10), 'Популярное аниме', true);
+            contentContainer.innerHTML += renderMovieRow(topRatedData.results.slice(0, 10), 'Лучшие фильмы');
+        }).catch(err => {
+            console.error('Error fetching additional rows:', err);
+        });
 
         // Render footer
         app.insertAdjacentHTML('beforeend', renderFooter());
+
 
     } catch (error) {
         console.error('Error initializing home page:', error);

@@ -183,7 +183,7 @@ export function renderHeroBanner(item, isTV = false) {
     const releaseDate = isActuallyTV ? item.first_air_date : item.release_date;
     const year = formatYear(releaseDate);
     const rating = formatRating(item.vote_average);
-    const backdropUrl = getBackdropUrl(item.backdrop_path, 'original');
+    const backdropUrl = getBackdropUrl(item.backdrop_path, 'w1280');
     const overview = truncateText(item.overview, 300) || 'Описание на русском языке пока отсутствует для этого фильма. TMDB работает над переводом.';
 
     return `
@@ -440,7 +440,7 @@ export function renderMovieDetails(item, type, credits = {}) {
                                     <span>${getStatusLabel(libraryStatus)}</span>
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                 </button>
-                                <div class="absolute left-0 right-0 bottom-full bg-[#1a1a1a] border border-gray-800 rounded-xl shadow-2xl overflow-hidden hidden group-hover/status:block z-50">
+                                <div class="absolute left-0 right-0 top-full bg-[#1a1a1a] border border-gray-800 rounded-xl shadow-2xl overflow-hidden hidden group-hover/status:block z-50">
                                     <button onclick="window.updateStatus('${item.id}', '${type}', 'watching')" class="w-full px-4 py-3 text-left hover:bg-gray-800 text-white transition flex items-center space-x-3"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> <span>Смотрю</span></button>
                                     <button onclick="window.updateStatus('${item.id}', '${type}', 'planned')" class="w-full px-4 py-3 text-left hover:bg-gray-800 text-white transition flex items-center space-x-3"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>В планах</span></button>
                                     <button onclick="window.updateStatus('${item.id}', '${type}', 'watched')" class="w-full px-4 py-3 text-left hover:bg-gray-800 text-white transition flex items-center space-x-3"><svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>Просмотрено</span></button>

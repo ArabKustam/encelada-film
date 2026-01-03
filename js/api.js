@@ -452,6 +452,41 @@ export async function updateSettings(settings) {
     throw new Error('Failed to update settings');
 }
 
+/**
+ * Sync user data from server
+ */
+export async function syncUser() {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+
+    try {
+        const response = await fetch('/api/user/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token.replace('Bearer ', '') })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('user', JSON.stringify(data.user));
+            return data.user;
+        }
+    } catch (err) {
+        console.error('Sync failed:', err);
+    }
+    return null;
+}
+
+/**
+ * Check Telegram Auth Status
+ */
+export async function checkTelegramAuth(tempToken) {
+    const response = await fetch(`/api/auth/telegram/check/${tempToken}`);
+    return await response.json();
+}
+
+
+
 
 // Apply settings on load
 import('./utils.js').then(utils => {
