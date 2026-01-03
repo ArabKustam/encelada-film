@@ -1,5 +1,5 @@
 import { renderHeader, renderFooter, renderMovieCard } from './components.js';
-import { getMovieDetails, getTVSeriesDetails, removeFromHistory, updateUserProfile } from './api.js';
+import { getMovieDetails, getTVSeriesDetails, removeFromHistory, updateUserProfile, updateSettings, clearHistory } from './api.js';
 import { initMobileMenu, updateAuthLinks, initSearch, getImageUrl, handleError } from './utils.js';
 
 const app = document.getElementById('app');
