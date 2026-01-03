@@ -11,6 +11,108 @@ body {
     color: #e5e5e5;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     overflow-x: hidden;
+    user-select: none;
+    transition: background 0.5s ease;
+}
+
+body.bg-black {
+    background-color: #000 !important;
+}
+
+/* Lava Lamp Background */
+#lava-lamp-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+    display: none;
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+body.bg-lava #lava-lamp-container {
+    display: block;
+}
+
+.blob {
+    position: absolute;
+    width: 40vw;
+    height: 40vw;
+    background: radial-gradient(circle, rgba(220, 38, 38, 0.3) 0%, transparent 70%);
+    border-radius: 50%;
+    filter: blur(60px);
+    animation: move 20s infinite alternate linear;
+}
+
+.blob-1 {
+    top: -10%;
+    left: -10%;
+    animation-duration: 25s;
+}
+
+.blob-2 {
+    bottom: -10%;
+    right: -10%;
+    background: radial-gradient(circle, rgba(30, 64, 175, 0.2) 0%, transparent 70%);
+    animation-duration: 30s;
+    animation-direction: alternate-reverse;
+}
+
+.blob-3 {
+    top: 50%;
+    left: 50%;
+    width: 30vw;
+    height: 30vw;
+    background: radial-gradient(circle, rgba(147, 51, 234, 0.2) 0%, transparent 70%);
+    animation-duration: 35s;
+}
+
+@keyframes move {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    33% {
+        transform: translate(10vw, 20vh) scale(1.1);
+    }
+
+    66% {
+        transform: translate(-15vw, 10vh) scale(0.9);
+    }
+
+    100% {
+        transform: translate(5vw, -5vh) scale(1.05);
+    }
+}
+
+/* Dynamic Background Overlay */
+#dynamic-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    background-size: cover;
+    background-position: center;
+    filter: blur(50px) brightness(0.3);
+    display: none;
+    opacity: 0;
+    transition: opacity 1s ease;
+}
+
+body.bg-dynamic #dynamic-bg {
+    display: block;
+    opacity: 1;
+}
+
+/* Hard disable dragging for images and links to prevent 'ghosting' */
+img,
+a {
+    -webkit-user-drag: none;
 }
 
 /* Custom scrollbar */
@@ -32,12 +134,45 @@ body {
     background: #555;
 }
 
+/* Movie card sizes */
+.movie-card.size-small {
+    width: 140px;
+}
+
+.movie-card.size-medium {
+    width: 180px;
+}
+
+.movie-card.size-large {
+    width: 220px;
+}
+
+/* Grid specific overrides: grid handles the width, but we want the card to stay centered or fill */
+.grid .movie-card {
+    width: 100%;
+}
+
+@media (max-width: 640px) {
+    .movie-card.size-small {
+        width: 110px;
+    }
+
+    .movie-card.size-medium {
+        width: 140px;
+    }
+
+    .movie-card.size-large {
+        width: 160px;
+    }
+}
+
 /* Movie card hover effects */
 .movie-card {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    flex-shrink: 0;
 }
 
-.movie-card:hover {
+.movie-card:not(.hover-disabled):hover {
     transform: scale(1.05);
     z-index: 10;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
@@ -64,8 +199,13 @@ html {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* Fade in animation */
@@ -74,8 +214,13 @@ html {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 /* Row scroll buttons */
@@ -107,12 +252,15 @@ html {
 
 /* Hide scrollbar but keep functionality */
 .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-    display: none;  /* Chrome, Safari and Opera */
+    display: none;
+    /* Chrome, Safari and Opera */
 }
 
 /* Mobile responsive improvements */
@@ -120,14 +268,15 @@ html {
     .movie-card:hover {
         transform: scale(1.02);
     }
-    
+
     /* Reduce hero banner height on mobile */
     .hero-banner-mobile {
         height: 50vh !important;
     }
-    
+
     /* Better touch targets */
-    button, a {
+    button,
+    a {
         min-height: 44px;
         min-width: 44px;
     }
@@ -138,6 +287,7 @@ html {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    line-clamp: 2;
     overflow: hidden;
 }
 
@@ -145,6 +295,7 @@ html {
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
+    line-clamp: 3;
     overflow: hidden;
 }
 
@@ -154,15 +305,20 @@ img {
     height: auto;
 }
 
-/* Better focus states for accessibility */
+/* Better focus states for accessibility - refined to be less aggressive */
 button:focus,
 a:focus {
+    outline: none;
+}
+
+button:focus-visible,
+a:focus-visible {
     outline: 2px solid #E50914;
     outline-offset: 2px;
 }
 
 /* Smooth transitions for all interactive elements */
-a, button {
+a,
+button {
     transition: all 0.2s ease;
 }
-

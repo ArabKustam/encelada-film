@@ -1,0 +1,46 @@
+[
+  {
+    "id": "1767445355380",
+    "userId": 1767403311959,
+    "username": "test1",
+    "userRating": 10,
+    "mediaId": "278",
+    "mediaType": "movie",
+    "text": "123",
+    "isSpoiler": true,
+    "parentId": null,
+    "likes": [
+      1767403311959
+    ],
+    "dislikes": [],
+    "timestamp": 1767445355380
+  },
+  {
+    "id": "1767446716051",
+    "userId": 1767446138040,
+    "username": "123",
+    "userRating": null,
+    "mediaId": "278",
+    "mediaType": "movie",
+    "text": "@test1, тест ответа",
+    "isSpoiler": false,
+    "parentId": null,
+    "likes": [],
+    "dislikes": [],
+    "timestamp": 1767446716051
+  },
+  {
+    "id": "1767447054051",
+    "userId": 1767446138040,
+    "username": "123",
+    "userRating": null,
+    "mediaId": "278",
+    "mediaType": "movie",
+    "text": "23",
+    "isSpoiler": false,
+    "parentId": "1767445355380",
+    "likes": [],
+    "dislikes": [],
+    "timestamp": 1767447054051
+  }
+]

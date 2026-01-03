@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Вход - Онлайн Кинотеатр</title>
+    <title>Encelada - Вход</title>
+    <link rel="icon" type="image/webp" href="images/logo.webp">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/custom.css">
     <style>
@@ -14,6 +16,7 @@
         }
     </style>
 </head>
+
 <body class="bg-black text-white min-h-screen flex items-center justify-center px-4">
     <div class="max-w-md w-full glass p-8 rounded-2xl">
         <div class="text-center mb-8">
@@ -24,29 +27,19 @@
         <form id="login-form" class="space-y-6">
             <div>
                 <label class="block text-sm font-medium mb-2">Email</label>
-                <input 
-                    type="email" 
-                    id="email" 
-                    required 
+                <input type="email" id="email" required
                     class="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-600 transition"
-                    placeholder="you@example.com"
-                >
+                    placeholder="you@example.com">
             </div>
             <div>
                 <label class="block text-sm font-medium mb-2">Пароль</label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    required 
+                <input type="password" id="password" required
                     class="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-600 transition"
-                    placeholder="••••••••"
-                >
+                    placeholder="••••••••">
             </div>
-            
-            <button 
-                type="submit" 
-                class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition transform hover:scale-[1.02] active:scale-[0.98]"
-            >
+
+            <button type="submit"
+                class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition transform hover:scale-[1.02] active:scale-[0.98]">
                 Войти
             </button>
         </form>
@@ -58,25 +51,32 @@
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                <button disabled class="flex items-center justify-center space-x-2 bg-gray-900 text-gray-500 py-3 rounded-lg cursor-not-allowed opacity-50">
+                <button disabled
+                    class="flex items-center justify-center space-x-2 bg-gray-900 text-gray-500 py-3 rounded-lg cursor-not-allowed opacity-50">
                     <img src="https://www.google.com/favicon.ico" class="w-5 h-5 grayscale" alt="Google">
                     <span>Google</span>
                 </button>
-                <button disabled class="flex items-center justify-center space-x-2 bg-gray-900 text-gray-500 py-3 rounded-lg cursor-not-allowed opacity-50">
-                    <img src="https://telegram.org/favicon.ico" class="w-5 h-5 grayscale" alt="Telegram">
+                <button id="tg-login-btn"
+                    class="flex items-center justify-center space-x-2 bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-lg transition">
+                    <img src="https://telegram.org/favicon.ico" class="w-5 h-5 flex-shrink-0" alt="Telegram">
                     <span>Telegram</span>
                 </button>
             </div>
         </div>
 
         <p class="mt-8 text-center text-gray-400 text-sm">
-            Нет аккаунта? 
+            Нет аккаунта?
             <a href="register.html" class="text-red-600 hover:text-red-500 font-semibold">Зарегистрироваться</a>
         </p>
     </div>
 
     <script type="module">
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
+        import { initTelegramAuth, checkTelegramAuth } from './js/api.js';
+
+        const loginForm = document.getElementById('login-form');
+        const tgLoginBtn = document.getElementById('tg-login-btn');
+
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -98,9 +98,61 @@
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                alert('Произошла ссылка при входе');
+                alert('Произошла ошибка при входе');
+            }
+        });
+
+        // Telegram Auth
+        tgLoginBtn.addEventListener('click', async () => {
+            try {
+                const { tempToken, botUrl } = await initTelegramAuth();
+
+                // Open bot in new tab
+                window.open(botUrl, '_blank');
+
+                tgLoginBtn.innerHTML = `
+                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Ожидание бота...</span>
+                `;
+                tgLoginBtn.classList.remove('opacity-50', 'grayscale', 'cursor-not-allowed');
+                tgLoginBtn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'text-white');
+                tgLoginBtn.disabled = true;
+
+                // Poll for auth status
+                const pollInterval = setInterval(async () => {
+                    try {
+                        const res = await checkTelegramAuth(tempToken);
+                        if (res.status === 'success') {
+                            clearInterval(pollInterval);
+                            localStorage.setItem('token', res.token);
+                            localStorage.setItem('user', JSON.stringify(res.user));
+                            window.location.href = 'index.html';
+                        }
+                    } catch (e) {
+                        console.error('Polling error:', e);
+                    }
+                }, 2000);
+
+                // Timeout after 5 mins
+                setTimeout(() => {
+                    clearInterval(pollInterval);
+                    tgLoginBtn.innerHTML = `
+                        <img src="https://telegram.org/favicon.ico" class="w-5 h-5" alt="Telegram">
+                        <span>Telegram</span>
+                    `;
+                    tgLoginBtn.disabled = false;
+                    tgLoginBtn.classList.add('opacity-50', 'grayscale', 'cursor-not-allowed');
+                    tgLoginBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'text-white');
+                }, 5 * 60 * 1000);
+
+            } catch (err) {
+                alert('Ошибка инициализации Telegram Auth');
             }
         });
     </script>
 </body>
+
 </html>

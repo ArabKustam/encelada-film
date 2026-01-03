@@ -52,37 +52,28 @@ export function truncateText(text, maxLength = 150) {
 export function isContentSafe(item) {
     if (!item) return false;
 
-    // Get user from localStorage
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-    // If include_adult is true, everything is safe
     if (user.settings?.include_adult) return true;
 
-    // Check adult flag from TMDB
+    // 1. Strict TMDB flag
     if (item.adult === true) return false;
 
-    const nsfwKeywords = [
-        'hentai', 'хентай', 'porn', 'порно', 'erotica', 'эротика',
-        'sex', 'секс', 'adult', 'для взрослых', '18+', 'uncensored',
-        'без цензуры', 'naked', 'голая', 'голый', 'ecchi', 'экки', 'экчи',
+    // 2. Refined Keyword filter
+    const title = (item.title || item.name || item.original_title || item.original_name || '').toLowerCase();
+    const overview = (item.overview || '').toLowerCase();
+
+    // Strict words that usually indicate actual porn/hentai/erotica
+    const strictNsfw = [
+        'hentai', 'porn', 'порно', 'erotica', 'эротика',
+        'uncensored', 'без цензуры', 'naked', 'ecchi', 'экки', 'экчи',
         'hentai-anime', 'хентай-аниме'
     ];
 
-    const fieldsToCheck = [
-        item.title,
-        item.name,
-        item.original_title,
-        item.original_name,
-        item.overview
-    ];
+    if (strictNsfw.some(kw => title.includes(kw) || overview.includes(kw))) {
+        return false;
+    }
 
-    const isMatch = fieldsToCheck.some(field => {
-        if (!field) return false;
-        const lowerField = field.toLowerCase();
-        return nsfwKeywords.some(kw => lowerField.includes(kw));
-    });
-
-    return !isMatch;
+    return true;
 }
 
 /**
@@ -103,7 +94,23 @@ export function formatDuration(minutes) {
  */
 export function getImageUrl(path, size = 'w500') {
     if (!path) return 'https://via.placeholder.com/500x750?text=No+Image';
+    if (path.startsWith('http')) return path; // Already an absolute URL
     return `https://image.tmdb.org/t/p/${size}${path}`;
+}
+
+/**
+ * Format time in seconds to HH:MM:SS or MM:SS
+ */
+export function formatTime(seconds) {
+    if (!seconds && seconds !== 0) return '';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+
+    if (h > 0) {
+        return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
+    }
+    return [m, s].map(v => v.toString().padStart(2, '0')).join(':');
 }
 
 /**
@@ -140,6 +147,85 @@ export function showLoading(container) {
             <div class="spinner"></div>
         </div>
     `;
+}
+
+/**
+ * Apply global settings (backgrounds, etc.)
+ */
+export function applyGlobalSettings() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const settings = user.settings || {};
+    const body = document.body;
+
+    // 1. Remove all mode classes
+    body.classList.remove('bg-black', 'bg-lava', 'bg-dynamic');
+
+    // 2. Background Mode
+    const bgMode = settings.background_mode || 'default';
+    if (bgMode === 'black') {
+        body.classList.add('bg-black');
+    } else if (bgMode === 'lava') {
+        body.classList.add('bg-lava');
+        ensureLavaLamp();
+    } else if (bgMode === 'dynamic') {
+        body.classList.add('bg-dynamic');
+        ensureDynamicBg();
+    }
+
+    // Add backdrop-container if dynamic mode is on or just generally for page-specific backgrounds
+    if (bgMode === 'dynamic') {
+        updateDynamicBackground();
+    }
+}
+
+function ensureLavaLamp() {
+    if (!document.getElementById('lava-lamp-container')) {
+        const div = document.createElement('div');
+        div.id = 'lava-lamp-container';
+        div.innerHTML = `
+            <div class="blob blob-1"></div>
+            <div class="blob blob-2"></div>
+            <div class="blob blob-3"></div>
+        `;
+        document.body.appendChild(div);
+    }
+}
+
+function ensureDynamicBg() {
+    if (!document.getElementById('dynamic-bg')) {
+        const div = document.createElement('div');
+        div.id = 'dynamic-bg';
+        document.body.appendChild(div);
+    }
+}
+
+function updateDynamicBackground() {
+    const dynamicBg = document.getElementById('dynamic-bg');
+    if (!dynamicBg) return;
+
+    // Try to find a backdrop image on the page
+    // 1. Check if hero backdrop is present
+    const heroBg = document.querySelector('.bg-cover');
+    if (heroBg) {
+        const style = window.getComputedStyle(heroBg);
+        const bgImg = style.backgroundImage;
+        if (bgImg && bgImg !== 'none') {
+            dynamicBg.style.backgroundImage = bgImg;
+            return;
+        }
+    }
+
+    // 2. Check if there's a backdropUrl in window (often set in watch/details)
+    if (window.currentBackdrop) {
+        dynamicBg.style.backgroundImage = `url('${window.currentBackdrop}')`;
+        return;
+    }
+
+    // 3. Fallback: use first movie card's poster (blurred)
+    const firstPoster = document.querySelector('.movie-card img');
+    if (firstPoster) {
+        dynamicBg.style.backgroundImage = `url('${firstPoster.src}')`;
+    }
 }
 
 /**
@@ -245,6 +331,11 @@ export function updateAuthLinks() {
             const label = user.username || 'Профиль';
             if (profileText) profileText.textContent = label;
             if (mobileAuthBtn) mobileAuthBtn.textContent = label;
+
+            const avatarContainer = document.getElementById('header-avatar-container');
+            if (avatarContainer && user.avatar) {
+                avatarContainer.innerHTML = `<img src="${user.avatar}" class="w-full h-full object-cover" alt="${user.username}">`;
+            }
 
             const goToProfile = (e) => {
                 e.preventDefault();
@@ -386,4 +477,10 @@ export function initSearch(onSearch, onLiveResult) {
         }
     });
 }
-
+// --- Global UI Polishing ---
+// Disable dragging globally for images and links to maintain a premium feel
+document.addEventListener('dragstart', (e) => {
+    if (e.target.tagName === 'IMG' || e.target.tagName === 'A') {
+        e.preventDefault();
+    }
+});

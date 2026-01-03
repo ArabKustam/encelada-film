@@ -1,6 +1,7 @@
-import { renderHeader, renderFooter, renderMovieDetails, renderCast, renderTrailer } from './components.js';
+import { renderHeader, renderFooter, renderMovieDetails, renderCast, renderTrailer, renderRatingBar, renderCommentsSection } from './components.js';
 import { getMovieDetails, getTVSeriesDetails, getItemCredits, getItemVideos, updateLibraryStatus, addToHistory } from './api.js';
 import { initMobileMenu, updateAuthLinks, initSearch } from './utils.js';
+import { initCommentsLogic } from './comments.js';
 
 let currentItem = null;
 
@@ -31,18 +32,37 @@ async function initDetailsPage() {
 
         currentItem = item;
 
+        // For dynamic background
+        window.currentBackdrop = item.backdrop_path ? `https://image.tmdb.org/t/p/original${item.backdrop_path}` : null;
+        const { applyGlobalSettings } = await import('./utils.js');
+        applyGlobalSettings();
+
         // Add to history
-        const user = JSON.parse(localStorage.getItem('user'));
-        if (user && localStorage.getItem('token')) {
-            addToHistory(item, type).catch(err => console.error('History update failed:', err));
+        if (localStorage.getItem('token')) {
+            await addToHistory(item, type).catch(err => console.error('History update failed:', err));
         }
 
-        document.title = `${item.title || item.name} - Онлайн Кинотеатр`;
+        document.title = `${item.title || item.name} - Encelada`;
 
         // Render main content
         const main = document.createElement('main');
         main.innerHTML = renderMovieDetails(item, type, credits);
         app.appendChild(main);
+
+        // --- Comments & Ratings Integration ---
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const currentRating = user?.ratings?.[`${type}_${id}`] || null;
+
+        const socialSection = document.createElement('section');
+        socialSection.className = 'max-w-7xl mx-auto px-4 md:px-8 pb-20';
+        socialSection.innerHTML = `
+            ${renderRatingBar(id, type, currentRating)}
+            ${renderCommentsSection(id, type, user)}
+        `;
+        app.appendChild(socialSection);
+
+        initCommentsLogic(id, type);
+        // ----------------------------------------
 
         // Render secondary parts after main is in DOM
         const castList = document.getElementById('cast-list');
@@ -78,6 +98,18 @@ window.updateStatus = async (itemId, type, status) => {
 
     try {
         await updateLibraryStatus(itemId, type, status, currentItem);
+
+        // Prompt for rating if marking as watched
+        if (status === 'watched') {
+            const currentRating = user.ratings?.[`${type}_${itemId}`];
+            if (!currentRating) {
+                const rating = prompt('Оцените фильм от 1 до 10 звезд (необязательно):', '10');
+                if (rating && !isNaN(rating) && rating >= 1 && rating <= 10) {
+                    await rateMedia(itemId, type, parseInt(rating));
+                }
+            }
+        }
+
         // Refresh page to show new status
         window.location.reload();
     } catch (error) {

@@ -259,12 +259,13 @@ export async function addToHistory(item, type) {
 
     const historyItem = {
         id: item.id,
-        media_type: type,
+        type: type,
         title: item.title || item.name,
-        name: item.name || item.title,
-        poster_path: item.poster_path || item.poster,
-        vote_average: item.vote_average || item.rating
+        poster: item.poster_path || item.poster,
+        rating: item.vote_average || item.rating
     };
+
+    console.log('[API] Saving to history:', historyItem);
 
     const response = await fetch('/api/user/history', {
         method: 'POST',
@@ -274,7 +275,51 @@ export async function addToHistory(item, type) {
 
     if (response.ok) {
         const data = await response.json();
+        console.log('[API] History updated:', data.user.username);
         localStorage.setItem('user', JSON.stringify(data.user));
+    } else {
+        const err = await response.json();
+        console.error('[API] History update failed:', err.error);
+    }
+}
+
+/**
+ * Remove item from watch history
+ */
+export async function removeFromHistory(itemId) {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const response = await fetch('/api/user/history', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token.replace('Bearer ', ''), itemId })
+    });
+
+    if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('user', JSON.stringify(data.user));
+        return data.user;
+    }
+}
+
+/**
+ * Clear entire watch history
+ */
+export async function clearHistory() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const response = await fetch('/api/user/history/clear', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token.replace('Bearer ', '') })
+    });
+
+    if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('user', JSON.stringify(data.user));
+        return data.user;
     }
 }
 
@@ -297,3 +342,118 @@ export async function updateWatchProgress(itemId, type, progress) {
     }
 }
 
+/**
+ * Get comments for media
+ */
+export async function getComments(mediaId, mediaType) {
+    const response = await fetch(`/api/comments/${mediaType}/${mediaId}`);
+    return await response.json();
+}
+
+/**
+ * Post a comment
+ */
+export async function postComment(mediaId, mediaType, text, isSpoiler = false, parentId = null) {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Unauthorized');
+
+    const response = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token.replace('Bearer ', ''), mediaId, mediaType, text, isSpoiler, parentId })
+    });
+
+    return await response.json();
+}
+
+/**
+ * Vote for a comment
+ */
+export async function voteComment(commentId, voteType) {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Unauthorized');
+
+    const response = await fetch(`/api/comments/${commentId}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token.replace('Bearer ', ''), voteType })
+    });
+
+    return await response.json();
+}
+
+/**
+ * Rate a movie or TV show
+ */
+export async function rateMedia(itemId, type, rating) {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const response = await fetch('/api/user/rate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token.replace('Bearer ', ''), itemId, type, rating })
+    });
+
+    if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('user', JSON.stringify(data.user));
+        return data.user;
+    }
+}
+
+/**
+ * Initialize Telegram Login
+ */
+export async function initTelegramAuth() {
+    const response = await fetch('/api/auth/telegram/init');
+    return await response.json();
+}
+
+/**
+ * Update user profile
+ */
+export async function updateUserProfile(username, avatar, tgUsername) {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Unauthorized');
+
+    const response = await fetch('/api/user/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token.replace('Bearer ', ''), username, avatar, tgUsername })
+    });
+
+    if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('user', JSON.stringify(data.user));
+        return data.user;
+    }
+    throw new Error('Failed to update profile');
+}
+
+/**
+ * Update user settings
+ */
+export async function updateSettings(settings) {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Unauthorized');
+
+    const response = await fetch('/api/auth/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token.replace('Bearer ', ''), settings })
+    });
+
+    if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('user', JSON.stringify(data.user));
+        return data.user;
+    }
+    throw new Error('Failed to update settings');
+}
+
+
+// Apply settings on load
+import('./utils.js').then(utils => {
+    utils.applyGlobalSettings();
+});

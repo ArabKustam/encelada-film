@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Просмотр - Онлайн Кинотеатр</title>
+    <title>Encelada - Просмотр</title>
+    <link rel="icon" type="image/webp" href="images/logo.webp">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/custom.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -111,9 +112,10 @@
     <div id="app"></div>
 
     <script type="module">
-        import { renderHeader, renderFooter } from './js/components.js';
+        import { renderHeader, renderFooter, renderRatingBar, renderCommentsSection } from './js/components.js';
         import { getMovieDetails, getTVSeriesDetails, addToHistory } from './js/api.js';
         import { initMobileMenu, updateAuthLinks, initSearch } from './js/utils.js';
+        import { initCommentsLogic } from './js/comments.js';
 
         const app = document.getElementById('app');
         let players = [];
@@ -136,13 +138,49 @@
             initSearch();
 
             try {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
                 const item = type === 'movie' ? await getMovieDetails(id) : await getTVSeriesDetails(id);
                 const title = item.title || item.name;
 
-                // Add to history
-                const user = JSON.parse(localStorage.getItem('user'));
-                if (user && localStorage.getItem('token')) {
-                    addToHistory(item, type).catch(err => console.error('History update failed:', err));
+                // For dynamic background
+                window.currentBackdrop = item.backdrop_path ? `https://image.tmdb.org/t/p/original${item.backdrop_path}` : null;
+                const { applyGlobalSettings } = await import('./js/utils.js');
+                applyGlobalSettings();
+
+                let lastProgressSync = 0;
+                let currentProgress = {
+                    time: 0,
+                    duration: 0,
+                    season: urlParams.get('s') || null,
+                    episode: urlParams.get('e') || null
+                };
+
+                function loadPlayer(index) {
+                    selectedPlayerIndex = index;
+                    const player = players[index];
+
+                    // Construct iframe URL with season/episode if it's a TV show
+                    let iframeUrl = player.iframeUrl;
+                    if (type === 'tv' && currentProgress.season && currentProgress.episode) {
+                        // Some players use s/e in URL, others in postMessage. 
+                        // For Reyohoho/Alloha we often append or they handle it differently.
+                        // For generic ones like vidsrc:
+                        if (iframeUrl.includes('vidsrc')) {
+                            iframeUrl += (iframeUrl.includes('?') ? '&' : '?') + `s=${currentProgress.season}&e=${currentProgress.episode}`;
+                        }
+                    }
+
+                    playerContainer.innerHTML = `<iframe id="player-iframe" src="${iframeUrl}" class="absolute inset-0 w-full h-full" allowfullscreen referrerpolicy="no-referrer"></iframe>`;
+
+                    // Update header name
+                    currentPlayerName.textContent = player.type;
+
+                    localStorage.setItem('preferred_player', player.type);
+                }
+
+                // Add to history (automatically when page opens)
+                if (localStorage.getItem('token')) {
+                    await addToHistory(item, type).catch(err => console.error('History error:', err));
                 }
 
                 const main = document.createElement('main');
@@ -177,7 +215,7 @@
                     </div>
 
                     <!-- Player container -->
-                    <div id="player-wrapper" class="player-aspect bg-[#0a0a0a] rounded-2xl overflow-hidden shadow-2xl border border-gray-800 relative">
+                    <div id="player-wrapper" class="player-aspect bg-[#0a0a0a] rounded-2xl overflow-hidden shadow-2xl border border-gray-800 relative ${user?.settings?.player_center ? 'centered' : ''}">
                         <div id="player-container" class="w-full h-full"></div>
                     </div>
 
@@ -221,6 +259,21 @@
                     </div>
                 `;
                 app.appendChild(main);
+
+                // --- Comments & Ratings Integration ---
+                const userObj = JSON.parse(localStorage.getItem('user') || 'null');
+                const currentRating = userObj?.ratings?.[`${type}_${id}`] || null;
+
+                const socialSection = document.createElement('div');
+                socialSection.className = 'mt-12';
+                socialSection.innerHTML = `
+                    ${renderRatingBar(id, type, currentRating)}
+                    ${renderCommentsSection(id, type, userObj)}
+                `;
+                main.appendChild(socialSection);
+
+                initCommentsLogic(id, type);
+                // ----------------------------------------
 
                 // Initialize Player
                 const playerContainer = document.getElementById('player-container');
@@ -280,16 +333,62 @@
                     currentPlayerName.textContent = 'Ошибка';
                 }
 
-                function loadPlayer(index) {
-                    selectedPlayerIndex = index;
-                    const player = players[index];
-                    playerContainer.innerHTML = `<iframe src="${player.iframeUrl}" class="absolute inset-0 w-full h-full" allowfullscreen></iframe>`;
 
-                    // Update header name
-                    currentPlayerName.textContent = player.type;
+                // Listen for messages from players (postMessage)
+                window.addEventListener('message', async (event) => {
+                    // Try to parse player messages for progress
+                    // Common player event formats:
+                    try {
+                        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
 
-                    localStorage.setItem('preferred_player', player.type);
+                        // Alloha / Reyohoho / VidSrc often use these keys
+                        if (data.event === 'timeupdate' || data.event === 'progress' || data.type === 'progress') {
+                            const time = data.time || data.seconds || data.position;
+                            const duration = data.duration || data.total;
+
+                            if (time) currentProgress.time = time;
+                            if (duration) currentProgress.duration = duration;
+
+                            // Sync every 20 seconds
+                            if (Date.now() - lastProgressSync > 20000) {
+                                syncProgress();
+                            }
+                        }
+
+                        // Episode changes
+                        if (data.event === 'episode_changed' || data.event === 'change_episode') {
+                            currentProgress.season = data.season || currentProgress.season;
+                            currentProgress.episode = data.episode || currentProgress.episode;
+                            currentProgress.time = 0;
+                            syncProgress();
+                        }
+                    } catch (e) {
+                        // Not a JSON message or not from a player we recognize
+                    }
+                });
+
+                async function syncProgress() {
+                    const token = localStorage.getItem('token');
+                    if (!token) return;
+
+                    try {
+                        const { updateWatchProgress } = await import('./js/api.js');
+                        await updateWatchProgress(id, type, {
+                            time: Math.floor(currentProgress.time),
+                            duration: Math.floor(currentProgress.duration),
+                            season: currentProgress.season,
+                            episode: currentProgress.episode
+                        });
+                        lastProgressSync = Date.now();
+                    } catch (err) {
+                        console.error('Failed to sync progress:', err);
+                    }
                 }
+
+                // Initial sync shortly after load
+                setTimeout(syncProgress, 5000);
+                // Save progress on leave
+                window.addEventListener('beforeunload', syncProgress);
 
                 function updatePlayerList() {
                     playerList.innerHTML = '';

@@ -17,6 +17,10 @@ async function initHomePage() {
         initMobileMenu();
         updateAuthLinks();
 
+        // Apply background/settings
+        const { applyGlobalSettings } = await import('./utils.js');
+        applyGlobalSettings();
+
         const performSearch = (query) => {
             if (query) {
                 renderSearchResults(query);

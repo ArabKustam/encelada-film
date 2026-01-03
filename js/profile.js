@@ -1,6 +1,6 @@
 import { renderHeader, renderFooter, renderMovieCard } from './components.js';
-import { getMovieDetails, getTVSeriesDetails } from './api.js';
-import { initMobileMenu, updateAuthLinks, initSearch, getImageUrl } from './utils.js';
+import { getMovieDetails, getTVSeriesDetails, removeFromHistory, updateUserProfile } from './api.js';
+import { initMobileMenu, updateAuthLinks, initSearch, getImageUrl, handleError } from './utils.js';
 
 const app = document.getElementById('app');
 let activeTab = 'dashboard';
@@ -19,6 +19,7 @@ async function initProfilePage() {
 }
 
 function renderStructure() {
+    const user = JSON.parse(localStorage.getItem('user'));
     app.innerHTML = renderHeader();
     initMobileMenu();
     updateAuthLinks();
@@ -28,12 +29,33 @@ function renderStructure() {
     main.className = 'pt-24 pb-12 max-w-7xl mx-auto px-4 md:px-8';
     main.innerHTML = `
         <div class="flex flex-col md:flex-row items-center gap-6 mb-12 bg-gray-900/50 p-8 rounded-2xl border border-gray-800">
-            <div class="w-32 h-32 bg-red-600 rounded-full flex items-center justify-center text-5xl font-black shadow-2xl shadow-red-900/20">
-                ${JSON.parse(localStorage.getItem('user')).username[0].toUpperCase()}
+            <div class="w-32 h-32 rounded-full flex items-center justify-center overflow-hidden shadow-2xl shadow-red-900/20 group relative">
+                ${user.avatar ?
+            `<img src="${user.avatar}" class="w-full h-full object-cover" alt="${user.username}">` :
+            `<div class="w-full h-full bg-red-600 flex items-center justify-center text-5xl font-black">${user.username[0].toUpperCase()}</div>`
+        }
+                <button id="edit-avatar-btn" class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-bold uppercase">
+                    Изменить
+                </button>
             </div>
             <div class="text-center md:text-left">
-                <h1 class="text-4xl font-black text-white mb-2">${JSON.parse(localStorage.getItem('user')).username}</h1>
-                <p class="text-gray-400">${JSON.parse(localStorage.getItem('user')).email}</p>
+                <div class="flex items-center gap-3 mb-1">
+                    <h1 class="text-4xl font-black text-white">${user.username}</h1>
+                    <button id="edit-name-btn" class="p-2 text-gray-500 hover:text-red-600 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </button>
+                </div>
+                ${user.tgUsername ?
+            `<div class="flex items-center gap-2">
+                        <a href="https://t.me/${user.tgUsername}" target="_blank" class="text-blue-400 hover:text-blue-300 transition flex items-center gap-2">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.36-1 .53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.24.35-.49.96-.75 3.78-1.65 6.31-2.74 7.58-3.27 3.61-1.5 4.36-1.76 4.85-1.77.11 0 .35.03.5.15.13.1.17.24.18.33.02.09-.01.21-.02.24z"/></svg>
+                            t.me/${user.tgUsername}
+                        </a>
+                    </div>` :
+            `<div class="flex items-center gap-2">
+                        <p class="text-gray-400">${user.email}</p>
+                    </div>`
+        }
             </div>
             <div class="flex-1"></div>
             <button id="logout-btn" class="px-6 py-2 bg-gray-800 hover:bg-red-600 text-white rounded-lg transition flex items-center gap-2">
@@ -81,11 +103,81 @@ function renderStructure() {
         localStorage.removeItem('token');
         window.location.href = 'index.html';
     });
+
+    document.getElementById('edit-name-btn').onclick = () => showEditModal('username', user.username);
+    document.getElementById('edit-avatar-btn').onclick = () => showEditModal('avatar', user.avatar || '');
+}
+
+function showEditModal(field, currentValue) {
+    let title, placeholder;
+    if (field === 'username') {
+        title = 'Изменить никнейм';
+        placeholder = 'Введите новый никнейм';
+    } else if (field === 'avatar') {
+        title = 'Изменить аватарку';
+        placeholder = 'Вставьте ссылку на изображение';
+    } else {
+        title = 'Ссылка на Telegram';
+        placeholder = 'Введите ваш @username в Telegram';
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in';
+    modal.innerHTML = `
+        <div class="bg-gray-900 border border-gray-800 p-8 rounded-2xl max-w-sm w-full shadow-2xl">
+            <h2 class="text-2xl font-black mb-6 text-white">${title}</h2>
+            <input 
+                type="text" 
+                id="edit-input" 
+                value="${currentValue}" 
+                placeholder="${placeholder}"
+                class="w-full bg-black border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-red-600 mb-6 transition"
+            >
+            <div class="flex gap-4">
+                <button id="cancel-edit" class="flex-1 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl transition">Отмена</button>
+                <button id="save-edit" class="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition">Сохранить</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    const input = modal.querySelector('#edit-input');
+    input.focus();
+    input.select();
+
+    const closeModal = () => modal.remove();
+
+    modal.querySelector('#cancel-edit').onclick = closeModal;
+    modal.querySelector('#save-edit').onclick = async () => {
+        const newValue = input.value.trim();
+        if (!newValue && field === 'username') return;
+
+        try {
+            const btn = modal.querySelector('#save-edit');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner w-4 h-4"></span>';
+
+            await updateUserProfile(
+                field === 'username' ? newValue : undefined,
+                field === 'avatar' ? newValue : undefined,
+                field === 'tgUsername' ? newValue : undefined
+            );
+
+            closeModal();
+            renderStructure();
+            renderActiveTab();
+        } catch (e) {
+            alert(handleError(e));
+        }
+    };
 }
 
 function renderActiveTab() {
     const container = document.getElementById('tab-content');
     const user = JSON.parse(localStorage.getItem('user'));
+
+    // Clear pending revivals
+    revivalQueue.length = 0;
 
     switch (activeTab) {
         case 'dashboard':
@@ -101,9 +193,25 @@ function renderActiveTab() {
             renderSettings(container, user);
             break;
     }
+
+    // Process revivals after innerHTML is set
+    processRevivals();
 }
 
 const metadataCache = new Map();
+const revivalQueue = [];
+
+function queueRevival(id, type, elementId) {
+    revivalQueue.push({ id, type, elementId });
+}
+
+async function processRevivals() {
+    const unique = Array.from(new Set(revivalQueue.map(t => `${t.type}_${t.id}`)));
+
+    for (const item of revivalQueue) {
+        reviveItem(item.id, item.type, item.elementId);
+    }
+}
 
 async function reviveItem(id, type, elementId) {
     const cacheKey = `${type}_${id}`;
@@ -119,7 +227,8 @@ async function reviveItem(id, type, elementId) {
             const posterEls = document.querySelectorAll(`[data-revive-poster="${elementId}"]`);
 
             const title = data.title || data.name;
-            const poster = getImageUrl(data.poster_path || data.poster, 'w342');
+            const posterPatch = data.poster_path || data.poster;
+            const poster = getImageUrl(posterPatch, 'w342');
 
             titleEls.forEach(el => {
                 el.textContent = title;
@@ -132,6 +241,18 @@ async function reviveItem(id, type, elementId) {
                     el.classList.remove('bg-gray-800');
                 }
             });
+
+            // CRITICAL: Save this metadata back to the user library/history on the server
+            // to prevent "IDs instead of titles" next time.
+            const { updateLibraryStatus, addToHistory } = await import('./api.js');
+            // If in library, update library metadata to persist it
+            const libKey = `${type}_${id}`;
+            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+            if (currentUser.library && currentUser.library[libKey]) {
+                const status = typeof currentUser.library[libKey] === 'string' ? currentUser.library[libKey] : currentUser.library[libKey].status;
+                updateLibraryStatus(id, type, status, data).catch(e => console.error('Silent metadata sync failed:', e));
+            }
+
             return data;
         }
     } catch (err) {
@@ -167,28 +288,45 @@ function renderDashboard(container, user) {
                     Последняя активность
                 </h2>
                 <div class="space-y-4">
-                    ${user.history?.length > 0 ? user.history.map((item, idx) => {
+                    ${(user.history || []).sort((a, b) => b.timestamp - a.timestamp).map((item, idx) => {
         const type = item.type || item.media_type || 'movie';
-        const elementId = `hist-${idx}-${item.id}`;
+        const elementId = `hist-dash-${idx}-${item.id}`;
         const hasMetadata = item.title || item.name;
         const title = item.title || item.name || '';
         const poster = getImageUrl(item.poster || item.poster_path, 'w92');
+        const progress = user.progress?.[`${type}_${item.id}`];
 
-        if (!hasMetadata) reviveItem(item.id, type, elementId);
+        if (!hasMetadata) queueRevival(item.id, type, elementId);
 
         return `
-                        <a href="details.html?id=${item.id}&type=${type}" class="flex items-center gap-4 bg-gray-900/40 hover:bg-gray-800 p-4 rounded-xl border border-gray-800 transition group">
-                            <img src="${poster}" data-revive-poster="${elementId}" class="w-16 h-24 object-cover rounded-lg shadow-lg ${!hasMetadata ? 'bg-gray-800' : ''}" alt="${title}">
-                            <div class="flex-1">
-                                <h3 class="font-bold text-white group-hover:text-red-500 transition ${!hasMetadata ? 'animate-pulse bg-gray-800 h-4 w-32 rounded' : ''}" data-revive-title="${elementId}">${title}</h3>
-                                <p class="text-xs text-gray-500 uppercase font-black mt-1">${type === 'tv' ? 'Сериал' : 'Фильм'}</p>
-                                ${user.progress?.[`${type}_${item.id}`] ? `
-                                    <p class="text-xs text-red-500 font-bold mt-1">Остановились на: S${user.progress[`${type}_${item.id}`].season} E${user.progress[`${type}_${item.id}`].episode}</p>
-                                ` : ''}
+                        <div class="flex items-center gap-2 bg-gray-900/40 hover:bg-gray-800 p-2 rounded-xl border border-gray-800 transition group relative">
+                            <a href="watch.html?id=${item.id}&type=${type}" class="flex items-center gap-4 flex-1 min-w-0">
+                                <img src="${poster}" data-revive-poster="${elementId}" class="w-16 h-24 object-cover rounded-lg shadow-lg ${!hasMetadata ? 'bg-gray-800' : ''}" alt="${title}">
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-bold text-white group-hover:text-red-500 transition truncate ${!hasMetadata ? 'animate-pulse bg-gray-800 h-4 w-32 rounded' : ''}" data-revive-title="${elementId}">${title}</h3>
+                                    <p class="text-[10px] text-gray-500 uppercase font-black mt-1">${type === 'tv' ? 'Сериал' : 'Фильм'}</p>
+                                    ${progress ? `
+                                        <div class="mt-2">
+                                            <div class="flex justify-between text-[10px] font-bold mb-1">
+                                                <span class="text-red-500">Прогресс</span>
+                                            </div>
+                                            ${progress.duration ? `
+                                                <div class="w-full bg-gray-800 h-1 rounded-full overflow-hidden">
+                                                    <div class="bg-red-600 h-full" style="width: ${Math.min(100, (progress.time / progress.duration) * 100)}%"></div>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </a>
+                            <div class="flex flex-col items-end gap-2">
+                                <div class="text-[10px] text-gray-600 font-bold whitespace-nowrap">${new Date(item.timestamp).toLocaleDateString()}</div>
+                                <button onclick="window.deleteHistoryItem('${item.id}', event)" class="p-2 text-gray-600 hover:text-red-500 transition" title="Удалить из истории">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
                             </div>
-                            <div class="text-xs text-gray-600">${new Date(item.timestamp).toLocaleDateString()}</div>
-                        </a>
-                    `}).join('') : '<p class="text-gray-500 py-8 text-center bg-gray-900/20 rounded-xl">Вы еще ничего не смотрели</p>'}
+                        </div>
+                    `}).join('') || '<p class="text-gray-500 py-8 text-center bg-gray-900/20 rounded-xl">Вы еще ничего не смотрели</p>'}
                 </div>
             </div>
         </div>
@@ -257,7 +395,7 @@ function renderLibrary(container, user) {
             const title = (typeof data === 'object' ? (data.title || data.name) : '') || '';
             const poster = getImageUrl(typeof data === 'object' ? (data.poster || data.poster_path) : null, 'w342');
 
-            if (!hasFullData) reviveItem(id, type, elementId);
+            if (!hasFullData) queueRevival(id, type, elementId);
 
             return `
                                     <a href="details.html?id=${id}&type=${type}" class="block group">
@@ -282,26 +420,43 @@ function renderHistory(container, user) {
     container.innerHTML = `
         <h2 class="text-2xl font-black mb-8">Вся история просмотров</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            ${user.history?.map((item, idx) => {
+            ${(user.history || []).sort((a, b) => b.timestamp - a.timestamp).map((item, idx) => {
         const type = item.type || item.media_type || 'movie';
         const elementId = `hist-full-${idx}-${item.id}`;
         const hasMetadata = item.title || item.name;
         const title = item.title || item.name || '';
         const poster = getImageUrl(item.poster || item.poster_path, 'w185');
+        const progress = user.progress?.[`${type}_${item.id}`];
 
-        if (!hasMetadata) reviveItem(item.id, type, elementId);
+        if (!hasMetadata) queueRevival(item.id, type, elementId);
 
         return `
-                <div class="bg-gray-900/40 p-4 rounded-2xl border border-gray-800 flex gap-4">
-                    <img src="${poster}" data-revive-poster="${elementId}" class="w-24 h-36 object-cover rounded-xl ${!hasMetadata ? 'bg-gray-800' : ''}" alt="${title}">
+                <div class="bg-gray-900/40 p-4 rounded-2xl border border-gray-800 flex gap-4 group">
+                    <div class="relative w-24 h-36 flex-shrink-0 overflow-hidden rounded-xl">
+                        <img src="${poster}" data-revive-poster="${elementId}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500 ${!hasMetadata ? 'bg-gray-800' : ''}" alt="${title}">
+                        ${progress?.duration ? `
+                            <div class="absolute bottom-0 left-0 right-0 h-1 bg-black/40">
+                                <div class="bg-red-600 h-full" style="width: ${Math.min(100, (progress.time / progress.duration) * 100)}%"></div>
+                            </div>
+                        ` : ''}
+                    </div>
                     <div class="flex-1 flex flex-col justify-between overflow-hidden">
                         <div>
-                            <h3 class="text-xl font-bold truncate ${!hasMetadata ? 'animate-pulse bg-gray-800 h-6 w-3/4 rounded' : ''}" data-revive-title="${elementId}">${title}</h3>
-                            <p class="text-xs text-red-600 font-black uppercase tracking-widest mt-1">${type === 'tv' ? 'Сериал' : 'Фильм'}</p>
+                            <h3 class="text-lg font-bold truncate group-hover:text-red-500 transition ${!hasMetadata ? 'animate-pulse bg-gray-800 h-6 w-3/4 rounded' : ''}" data-revive-title="${elementId}">${title}</h3>
+                            <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest mt-1">${type === 'tv' ? 'Сериал' : 'Фильм'}</p>
+                            ${progress ? `
+                                <p class="text-xs text-red-500 font-bold mt-2">
+                                </p>
+                            ` : ''}
                         </div>
-                        <div class="flex items-center justify-between mt-2">
-                            <span class="text-xs text-gray-600">${new Date(item.timestamp).toLocaleString()}</span>
-                            <a href="details.html?id=${item.id}&type=${type}" class="text-sm font-bold text-white hover:text-red-500 transition">Перейти →</a>
+                        <div class="flex items-center mt-2 gap-2">
+                            <span class="text-[10px] text-gray-600 font-bold">${new Date(item.timestamp).toLocaleString()}</span>
+                            <div class="flex gap-2">
+                                <button onclick="window.deleteHistoryItem('${item.id}', event)" class="p-2 text-gray-600 hover:text-red-500 transition" title="Удалить">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                                <a href="watch.html?id=${item.id}&type=${type}" class="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition shadow-lg shadow-red-900/20">Смотреть</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -312,48 +467,176 @@ function renderHistory(container, user) {
 
 function renderSettings(container, user) {
     container.innerHTML = `
-        <div class="max-w-2xl bg-gray-900/40 p-8 rounded-3xl border border-gray-800">
-            <h2 class="text-2xl font-black mb-8">Настройки контента</h2>
-            
-            <div class="space-y-6">
-                <!-- Adult Content Toggle -->
+        <div class="max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Content & Safety -->
+            <div class="bg-gray-900/40 p-6 rounded-2xl border border-gray-800 space-y-6">
+                <h2 class="text-xl font-black mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    Безопасность
+                </h2>
                 <div class="flex items-center justify-between p-4 bg-black/40 rounded-xl">
                     <div>
-                        <h3 class="font-bold">Контент для взрослых (18+)</h3>
-                        <p class="text-xs text-gray-500">Показывать фильмы и сериалы с возрастным ограничением</p>
+                        <h3 class="font-bold text-sm">Контент 18+</h3>
+                        <p class="text-[10px] text-gray-500">Показывать взрослый контент</p>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="adult-toggle" class="sr-only peer" ${user.settings?.include_adult ? 'checked' : ''}>
+                        <input type="checkbox" id="setting-adult" class="sr-only peer" ${user.settings?.include_adult ? 'checked' : ''}>
                         <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
                     </label>
                 </div>
+            </div>
 
-                <div class="pt-8 border-t border-gray-800">
-                    <button class="w-full py-4 bg-gray-800 hover:bg-red-700 text-white font-bold rounded-xl transition">
-                        Сбросить статистику
+            <!-- Player Settings -->
+            <div class="bg-gray-900/40 p-6 rounded-2xl border border-gray-800 space-y-6">
+                <h2 class="text-xl font-black mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Плеер
+                </h2>
+                <div class="flex items-center justify-between p-4 bg-black/40 rounded-xl">
+                    <div>
+                        <h3 class="font-bold text-sm">Центрирование</h3>
+                        <p class="text-[10px] text-gray-500">Автоматически центрировать плеер</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="setting-center" class="sr-only peer" ${user.settings?.player_center ? 'checked' : ''}>
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- UI Customization -->
+            <div class="bg-gray-900/40 p-6 rounded-2xl border border-gray-800 space-y-6">
+                <h2 class="text-xl font-black mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                    Интерфейс
+                </h2>
+                <div class="space-y-4">
+                    <div class="p-4 bg-black/40 rounded-xl">
+                        <label class="block text-sm font-bold mb-2">Размер карточек</label>
+                        <select id="setting-card-size" class="w-full bg-gray-800 border-none rounded-lg text-xs py-2 focus:ring-0">
+                            <option value="small" ${user.settings?.card_size === 'small' ? 'selected' : ''}>Маленький</option>
+                            <option value="medium" ${user.settings?.card_size === 'medium' || !user.settings?.card_size ? 'selected' : ''}>Средний</option>
+                            <option value="large" ${user.settings?.card_size === 'large' ? 'selected' : ''}>Большой</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-black/40 rounded-xl">
+                        <div>
+                            <h3 class="font-bold text-sm">Анимация наведения</h3>
+                            <p class="text-[10px] text-gray-500">Подъем карточек при наведении</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="setting-hover" class="sr-only peer" ${user.settings?.card_hover_disabled ? '' : 'checked'}>
+                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                    </div>
+
+                    <div class="p-4 bg-black/40 rounded-xl">
+                        <label class="block text-sm font-bold mb-2">Общий фон</label>
+                        <select id="setting-bg-mode" class="w-full bg-gray-800 border-none rounded-lg text-xs py-2 focus:ring-0">
+                            <option value="default" ${user.settings?.background_mode === 'default' || !user.settings?.background_mode ? 'selected' : ''}>Стандартный (Черный 90%)</option>
+                            <option value="black" ${user.settings?.background_mode === 'black' ? 'selected' : ''}>Глубокий черный</option>
+                            <option value="lava" ${user.settings?.background_mode === 'lava' ? 'selected' : ''}>Лавовая лампа</option>
+                            <option value="dynamic" ${user.settings?.background_mode === 'dynamic' ? 'selected' : ''}>Динамический (Размытый баннер)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="space-y-6">
+                <div class="bg-gray-900/40 p-6 rounded-2xl border border-gray-800 flex flex-col items-center justify-center">
+                    <button id="apply-settings-btn" class="w-full py-4 bg-white text-black hover:bg-red-600 hover:text-white font-black rounded-xl transition shadow-xl transform hover:scale-[1.02] active:scale-95 text-lg uppercase tracking-widest">
+                        Применить изменения
                     </button>
-                    <p class="text-center text-[10px] text-gray-600 mt-4 uppercase tracking-widest font-black">Осторожно: это действие необратимо</p>
+                    <p class="mt-3 text-[10px] text-gray-500 font-bold uppercase">Настройки будут сохранены в облаке</p>
+                </div>
+
+                <div class="bg-gray-900/40 p-6 rounded-2xl border border-red-900/30 space-y-4">
+                    <h2 class="text-xl font-black flex items-center gap-2 text-red-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Опасная зона
+                    </h2>
+                    <button id="clear-history-btn" class="w-full py-3 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white font-bold rounded-xl transition text-sm">
+                        Очистить историю просмотра
+                    </button>
                 </div>
             </div>
         </div>
     `;
 
-    document.getElementById('adult-toggle').addEventListener('change', async (e) => {
-        const include_adult = e.target.checked;
-        const token = localStorage.getItem('token');
+    // Apply Settings Button logic
+    document.getElementById('apply-settings-btn').onclick = async () => {
+        const btn = document.getElementById('apply-settings-btn');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Сохранение...';
 
         try {
-            const response = await fetch('/api/auth/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: token.replace('Bearer ', ''), settings: { include_adult } })
-            });
-            const data = await response.json();
-            localStorage.setItem('user', JSON.stringify(data.user));
+            const settings = {
+                include_adult: document.getElementById('setting-adult').checked,
+                player_center: document.getElementById('setting-center').checked,
+                card_size: document.getElementById('setting-card-size').value,
+                card_hover_disabled: !document.getElementById('setting-hover').checked,
+                background_mode: document.getElementById('setting-bg-mode').value
+            };
+
+            const updatedUser = await updateSettings(settings);
+
+            // Apply changes immediately
+            const { applyGlobalSettings } = await import('./utils.js');
+            applyGlobalSettings();
+
+            btn.textContent = 'Успешно!';
+            btn.classList.add('bg-green-600', 'text-white');
+            btn.classList.remove('bg-white', 'text-black');
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                btn.classList.remove('bg-green-600', 'text-white');
+                btn.classList.add('bg-white', 'text-black');
+                // Re-render tab to reflect changes in UI (like card sizes in favorites)
+                renderActiveTab();
+            }, 2000);
+
         } catch (err) {
             console.error('Failed to update settings:', err);
+            btn.textContent = 'Ошибка!';
+            btn.classList.add('bg-red-600', 'text-white');
+            btn.classList.remove('bg-white', 'text-black');
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                btn.classList.remove('bg-red-600', 'text-white');
+                btn.classList.add('bg-white', 'text-black');
+            }, 2000);
         }
-    });
+    };
+
+    document.getElementById('clear-history-btn').onclick = async () => {
+        if (!confirm('Вы уверены, что хотите полностью очистить историю просмотра?')) return;
+        try {
+            await clearHistory();
+            renderActiveTab();
+            alert('История успешно очищена');
+        } catch (err) {
+            console.error('Failed to clear history:', err);
+        }
+    };
 }
+
+// Global delete history item function
+window.deleteHistoryItem = async (itemId, event) => {
+    if (event) event.preventDefault();
+    if (!confirm('Вы уверены, что хотите удалить этот элемент из истории?')) return;
+
+    try {
+        await removeFromHistory(itemId);
+        // Re-render
+        renderActiveTab();
+    } catch (err) {
+        console.error('Failed to delete history item:', err);
+    }
+};
 
 initProfilePage();

@@ -8,9 +8,11 @@ export function renderHeader() {
     return `
         <header class="bg-black bg-opacity-90 fixed w-full z-50 px-4 md:px-8 py-4">
             <nav class="flex items-center justify-between max-w-7xl mx-auto">
-                <a href="index.html" class="text-xl md:text-2xl lg:text-3xl font-bold text-red-600 hover:text-red-700 transition flex items-center gap-2">
-                    <svg class="w-8 h-8 md:w-10 md:h-10" viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4h-2l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"></path></svg>
-                    <span>Кинотеатр</span>
+                <a href="index.html" class="text-xl md:text-2xl lg:text-3xl font-black text-white hover:text-red-500 transition flex items-center gap-3 group">
+                    <div class="relative w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-red-600 transition shadow-lg">
+                        <img src="images/logo.webp" alt="Encelada Logo" class="w-full h-full object-cover">
+                    </div>
+                    <span class="tracking-tighter uppercase">Encelada</span>
                 </a>
                 
                 <!-- Search Bar -->
@@ -39,9 +41,11 @@ export function renderHeader() {
                 <!-- Profile/Auth -->
                 <div class="hidden md:flex items-center space-x-4">
                     <button id="auth-btn" class="text-white hover:text-red-600 transition flex items-center space-x-2">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        </svg>
+                        <div id="header-avatar-container" class="w-8 h-8 rounded-full overflow-hidden bg-gray-800 flex items-center justify-center">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                        </div>
                         <span id="profile-text">Войти</span>
                     </button>
                 </div>
@@ -89,7 +93,7 @@ export function renderFooter() {
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div>
                         <h3 class="text-white text-lg font-semibold mb-4">О нас</h3>
-                        <p class="text-sm">Онлайн кинотеатр с большой коллекцией фильмов, сериалов и аниме.</p>
+                        <p class="text-sm">Encelada — онлайн кинотеатр с большой коллекцией фильмов, сериалов и аниме.</p>
                     </div>
                     <div>
                         <h3 class="text-white text-lg font-semibold mb-4">Навигация</h3>
@@ -107,57 +111,55 @@ export function renderFooter() {
                     </div>
                 </div>
                 <div class="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
-                    <p>&copy; 2024 Онлайн Кинотеатр. Все права защищены.</p>
+                    <p>&copy; 2024 Encelada. Все права защищены.</p>
                 </div>
             </div>
         </footer>
     `;
 }
 
-/**
- * Render movie/TV card
- */
 export function renderMovieCard(item, isTV = false) {
-    if (!item) return '';
+    if (!item || !isContentSafe(item)) return '';
 
-    // Auto-detect type if media_type is present (common in trending)
-    const isActuallyTV = isTV || item.media_type === 'tv';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const settings = user.settings || {};
+    const cardSize = settings.card_size || 'medium';
+    const hoverClass = settings.card_hover_disabled ? 'hover-disabled' : '';
 
-    // Fallback chain for title: Russian -> Original -> Placeholder
-    const title = isActuallyTV
-        ? (item.name || item.original_name || 'Без названия')
-        : (item.title || item.original_title || 'Без названия');
-
+    const isActuallyTV = isTV || item.media_type === 'tv' || !!item.name;
+    const title = isActuallyTV ? (item.name || 'Без названия') : (item.title || 'Без названия');
+    const posterUrl = getImageUrl(item.poster_path || item.poster, 'w500');
+    const rating = formatRating(item.vote_average || item.rating);
     const releaseDate = isActuallyTV ? item.first_air_date : item.release_date;
     const year = formatYear(releaseDate);
-    const rating = formatRating(item.vote_average);
-    const posterUrl = getImageUrl(item.poster_path, 'w300');
     const overview = truncateText(item.overview, 100) || 'Описание отсутствует';
 
     return `
-        <a href="details.html?id=${item.id}&type=${isActuallyTV ? 'tv' : 'movie'}" class="movie-card block group" data-id="${item.id}" data-type="${isActuallyTV ? 'tv' : 'movie'}">
-            <div class="relative overflow-hidden rounded-lg shadow-lg">
+        <a href="details.html?id=${item.id}&type=${isActuallyTV ? 'tv' : 'movie'}" 
+           class="movie-card group block flex-shrink-0 size-${cardSize} ${hoverClass}"
+           data-id="${item.id}" data-type="${isActuallyTV ? 'tv' : 'movie'}">
+            <div class="relative aspect-[2/3] rounded-xl overflow-hidden shadow-lg bg-gray-900 border border-gray-800 transition">
                 <img 
                     src="${posterUrl}" 
                     alt="${title}"
-                    class="w-full h-auto transition duration-500 group-hover:scale-110"
+                    class="w-full h-full object-cover transition duration-500 ${settings.card_hover_disabled ? '' : 'group-hover:scale-110 group-hover:opacity-40'}"
                     loading="lazy"
+                    onerror="this.src='https://via.placeholder.com/500x750?text=No+Image'"
                 >
-                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-70 transition duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <div class="text-center px-4">
-                        <p class="text-white text-sm mb-2">${overview}</p>
-                        <div class="flex items-center justify-center space-x-4 text-white text-sm font-bold">
-                            <span class="flex items-center gap-1"><svg class="w-4 h-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg> ${rating}</span>
-                            ${year ? `<span class="flex items-center gap-1"><svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> ${year}</span>` : ''}
+                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition p-4 bg-black/60">
+                    <div class="text-center">
+                        <p class="text-white text-xs mb-2 line-clamp-4">${overview}</p>
+                        <div class="flex items-center justify-center space-x-4 text-white text-xs font-bold">
+                            <span class="flex items-center gap-1"><svg class="w-3 h-3 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg> ${rating}</span>
+                            ${year ? `<span class="flex items-center gap-1"><svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> ${year}</span>` : ''}
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="mt-2">
-                <h3 class="text-white font-semibold text-sm md:text-base line-clamp-2 leading-tight group-hover:text-red-500 transition">${title}</h3>
-                <div class="flex items-center space-x-2 mt-1">
-                    <span class="text-yellow-400 text-xs flex items-center gap-0.5"><svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg> ${rating}</span>
-                    ${year ? `<span class="text-gray-400 text-xs flex items-center gap-0.5"><svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> ${year}</span>` : ''}
+            <div class="mt-2 text-center md:text-left">
+                <h3 class="text-white font-semibold text-xs md:text-sm line-clamp-2 leading-tight group-hover:text-red-500 transition">${title}</h3>
+                <div class="flex items-center justify-center md:justify-start space-x-2 mt-1">
+                    <span class="text-yellow-400 text-[10px] flex items-center gap-0.5"><svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg> ${rating}</span>
                 </div>
             </div>
         </a>
@@ -246,11 +248,7 @@ export function renderMovieRow(movies, title, isTV = false) {
                     class="flex space-x-4 overflow-x-auto pb-4 px-4 md:px-8 scrollbar-hide"
                     style="scroll-behavior: smooth;"
                 >
-                    ${processedMovies.map(movie => `
-                        <div class="flex-shrink-0 w-[150px] md:w-[200px]">
-                            ${renderMovieCard(movie, isTV)}
-                        </div>
-                    `).join('')}
+                    ${processedMovies.map(movie => renderMovieCard(movie, isTV)).join('')}
                 </div>
                 <button 
                     onclick="document.getElementById('${rowId}').scrollBy({left: -400, behavior: 'smooth'})"
@@ -284,8 +282,19 @@ export function renderMovieGrid(movies, isTV = false) {
         return '<p class="text-gray-400 text-center py-20">Контент скрыт фильтром безопасности</p>';
     }
 
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const cardSize = user.settings?.card_size || 'medium';
+
+    // Widths mapping for dynamic grid
+    const widths = {
+        'small': '120px',
+        'medium': '160px',
+        'large': '200px'
+    };
+    const minWidth = widths[cardSize];
+
     return `
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+        <div class="grid gap-4 md:gap-6 px-4 md:px-8" style="grid-template-columns: repeat(auto-fill, minmax(${minWidth}, 1fr))">
             ${processedMovies.map(movie => renderMovieCard(movie, isTV)).join('')}
         </div>
     `;
@@ -550,6 +559,216 @@ export function renderTrailer(videos) {
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                 allowfullscreen
             ></iframe>
+        </div>
+    `;
+}
+
+/**
+ * Render 10-star rating bar
+ */
+export function renderRatingBar(itemId, type, currentRating = null) {
+    const stars = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    const isRated = currentRating !== null;
+
+    return `
+        <div id="rating-container-${itemId}" class="bg-gray-900/40 p-6 rounded-2xl border border-gray-800 mb-8 max-w-2xl">
+            <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                ${isRated ? 'Ваша оценка' : 'Оцените этот проект'}
+            </h3>
+            
+            <div class="${isRated ? 'hidden' : 'block'}" id="rating-selector">
+                <div class="flex items-center gap-1 mb-2">
+                    ${stars.map(s => `
+                        <button 
+                            onclick="window.handleRate('${itemId}', '${type}', ${s})"
+                            onmouseover="window.highlightStars(${s})"
+                            onmouseout="window.resetStars()"
+                            data-star="${s}"
+                            class="star-btn p-1 text-gray-700 hover:text-yellow-500 transition-colors"
+                        >
+                            <svg class="w-6 h-6 sm:w-8 sm:h-8" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                        </button>
+                    `).join('')}
+                </div>
+                <div class="text-xs text-gray-500 font-bold uppercase transition" id="rating-label">Наведите на звезды</div>
+            </div>
+
+            <div class="${isRated ? 'flex' : 'hidden'} items-center justify-between" id="rating-display">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl font-black text-white">${currentRating}</span>
+                    <span class="text-gray-600 text-sm font-bold uppercase tracking-tighter">/ 10 звезд</span>
+                </div>
+                <button onclick="window.showRatingSelector()" class="text-xs font-black text-gray-500 hover:text-red-500 uppercase transition border-b border-gray-800 hover:border-red-500">Изменить оценку</button>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Render comments section
+ */
+export function renderCommentsSection(mediaId, mediaType, user = null) {
+    return `
+        <div class="mt-12 border-t border-gray-900 pt-12">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-2xl font-black flex items-center gap-3">
+                    <span class="w-2 h-8 bg-red-600 rounded-full"></span>
+                    Комментарии
+                </h2>
+                <button 
+                    onclick="window.toggleComments()" 
+                    id="toggle-comments-btn"
+                    class="flex items-center gap-2 px-6 py-3 bg-gray-900 hover:bg-gray-800 rounded-xl border border-gray-800 text-white font-bold transition group"
+                >
+                    <span id="toggle-comments-text">Открыть комментарии</span>
+                    <svg id="eye-icon" class="w-6 h-6 text-gray-500 group-hover:text-red-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path id="eye-open" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path id="eye-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        <path id="eye-closed" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.046m4.596-4.596A10.05 10.05 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21m-2.105-2.105L3 3" />
+                    </svg>
+                </button>
+            </div>
+
+            <div id="comments-container" class="hidden space-y-8 animate-fade-in">
+                ${user ? `
+                    <div class="bg-gray-900/40 p-6 rounded-2xl border border-gray-800">
+                        <textarea 
+                            id="comment-textarea" 
+                            maxlength="1500"
+                            placeholder="Напишите свое мнение..." 
+                            class="w-full bg-gray-800/50 text-white rounded-xl p-4 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-red-600 transition border border-gray-700 font-medium"
+                        ></textarea>
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <div class="relative">
+                                    <input type="checkbox" id="spoiler-check" class="sr-only peer">
+                                    <div class="w-6 h-6 bg-gray-800 border-2 border-gray-700 rounded-md peer-checked:bg-red-600 peer-checked:border-red-600 transition"></div>
+                                    <svg class="absolute inset-0 w-6 h-6 text-white opacity-0 peer-checked:opacity-100 p-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                </div>
+                                <span class="text-sm font-bold text-gray-500 group-hover:text-red-500 transition uppercase tracking-widest">ЕСТЬ СПОЙЛЕРЫ</span>
+                            </label>
+                            <div class="flex items-center gap-4 w-full sm:w-auto">
+                                <span id="char-count" class="text-xs text-gray-600 font-bold">1500 символов</span>
+                                <button 
+                                    onclick="window.submitComment('${mediaId}', '${mediaType}')"
+                                    class="w-full sm:w-auto px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl transition shadow-lg shadow-red-900/20"
+                                >
+                                    ОТПРАВИТЬ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="bg-red-900/10 border border-red-900/20 p-8 rounded-2xl text-center">
+                        <p class="text-red-500 font-bold mb-4">Чтобы оставлять комментарии, нужно войти в аккаунт</p>
+                        <button onclick="window.showAuthModal()" class="px-8 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition">Войти</button>
+                    </div>
+                `}
+
+                <div id="comments-list" class="space-y-6">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Render individual comment
+ */
+export function renderCommentItem(comment, currentUserId = null, level = 0, hasReplies = false, repliesHtml = '') {
+    const isSpoiler = comment.isSpoiler;
+    const hasLiked = comment.likes?.includes(currentUserId);
+    const hasDisliked = comment.dislikes?.includes(currentUserId);
+    const date = new Date(comment.timestamp).toLocaleDateString();
+
+    const indentation = level > 0 ? `ml-${Math.min(level * 4, 12)} md:ml-${Math.min(level * 8, 20)}` : '';
+    const borderClass = level > 0 ? 'border-l-2 border-gray-800 pl-4 md:pl-8 mt-4' : '';
+
+    return `
+        <div class="comment-branch ${indentation} ${borderClass}">
+            <div class="comment-item bg-gray-900/20 p-4 md:p-6 rounded-2xl border border-gray-800 group" id="comment-${comment.id}">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-red-600 to-red-900 rounded-lg flex items-center justify-center font-black text-white text-base md:text-lg shadow-lg flex-shrink-0">
+                            ${comment.username[0].toUpperCase()}
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-black text-white hover:text-red-500 transition cursor-pointer truncate">${comment.username}</span>
+                                ${comment.userRating ? `
+                                    <span class="flex items-center gap-0.5 px-2 py-0.5 bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 rounded-md text-[10px] font-black">
+                                        ${comment.userRating} <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                                    </span>
+                                ` : ''}
+                            </div>
+                            <div class="text-[10px] text-gray-600 font-bold uppercase tracking-widest">${date}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    ${isSpoiler ? `
+                        <div class="spoiler-container relative">
+                            <p class="text-gray-300 text-sm md:text-base leading-relaxed font-medium transition duration-500 blur-md select-none" id="text-${comment.id}">
+                                ${comment.text}
+                            </p>
+                            <div 
+                                onclick="window.revealSpoiler('${comment.id}')"
+                                id="reveal-${comment.id}"
+                                class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-xl cursor-pointer hover:bg-black/20 transition group/spoiler"
+                            >
+                                <span class="px-3 py-1.5 bg-red-600 text-white text-[9px] font-black rounded-lg uppercase tracking-widest group-hover/spoiler:scale-110 transition">Открыть спойлер</span>
+                            </div>
+                        </div>
+                    ` : `
+                        <p class="text-gray-300 text-sm md:text-base leading-relaxed font-medium">${comment.text}</p>
+                    `}
+                </div>
+
+                <div class="mt-4 md:mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-gray-800/50 pt-4">
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center bg-gray-800/50 rounded-lg p-0.5 border border-gray-800">
+                            <button 
+                                onclick="window.vote('${comment.id}', 'like')"
+                                class="p-1.5 md:p-2 transition ${hasLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}"
+                                title="Нравится"
+                            >
+                                <svg class="w-4 h-4 md:w-5 md:h-5" fill="${hasLiked ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.708C19.743 10 20.5 10.895 20.5 12c0 .412-.1.82-.3 1.2l-2.292 4.584C17.508 18.584 16.75 19 16 19H9V10l3-7 1.5 1.5V10zM9 19H4V10h5V19z"></path></svg>
+                            </button>
+                            <span class="text-[10px] md:text-xs font-black text-white px-1 md:px-2">${(comment.likes?.length || 0) - (comment.dislikes?.length || 0)}</span>
+                            <button 
+                                onclick="window.vote('${comment.id}', 'dislike')"
+                                class="p-1.5 md:p-2 transition ${hasDisliked ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'}"
+                                title="Не нравится"
+                            >
+                                <svg class="w-4 h-4 md:w-5 md:h-5" fill="${hasDisliked ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24" style="transform: rotate(180deg)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.708C19.743 10 20.5 10.895 20.5 12c0 .412-.1.82-.3 1.2l-2.292 4.584C17.508 18.584 16.75 19 16 19H9V10l3-7 1.5 1.5V10zM9 19H4V10h5V19z"></path></svg>
+                            </button>
+                        </div>
+                        <button onclick="window.replyTo('${comment.id}', '${comment.username}')" class="text-[9px] md:text-xs font-black text-gray-500 hover:text-red-500 uppercase transition tracking-widest">ОТВЕТИТЬ</button>
+                    </div>
+
+                    ${hasReplies ? `
+                        <button 
+                            id="toggle-btn-${comment.id}"
+                            onclick="window.toggleBranch('${comment.id}')"
+                            class="flex items-center gap-2 text-[9px] md:text-xs font-black text-red-500 hover:text-red-400 uppercase tracking-widest transition"
+                        >
+                            <span>Показать ответы</span>
+                            <svg class="w-3 h-3 md:w-4 md:h-4 toggle-indicator transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+            
+            ${hasReplies ? `
+                <div id="branch-${comment.id}" class="hidden">
+                    ${repliesHtml}
+                </div>
+            ` : ''}
         </div>
     `;
 }
