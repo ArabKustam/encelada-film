@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль - Онлайн Кинотеатр</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/custom.css">
+</head>
+
+<body class="bg-black text-white min-h-screen">
+    <div id="app"></div>
+
+    <script type="module">
+        import { renderHeader, renderFooter } from './js/components.js';
+        import { initMobileMenu, updateAuthLinks } from './js/utils.js';
+
+        const app = document.getElementById('app');
+        const user = JSON.parse(localStorage.getItem('user'));
+
+        if (!user) {
+            window.location.href = 'login.html';
+        }
+
+        async function initProfilePage() {
+            app.innerHTML = renderHeader();
+            initMobileMenu();
+            updateAuthLinks();
+
+            const main = document.createElement('main');
+            main.className = 'pt-24 pb-12 max-w-4xl mx-auto px-4';
+            main.innerHTML = `
+                <div class="bg-gray-900 rounded-2xl p-8 border border-gray-800">
+                    <div class="flex items-center space-x-6 mb-8">
+                        <div class="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center text-4xl font-bold">
+                            ${user.username[0].toUpperCase()}
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-bold">${user.username}</h1>
+                            <p class="text-gray-400">${user.email}</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-8">
+                        <section>
+                            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                                <span class="mr-2">⚙️</span> Настройки контента
+                            </h2>
+                            <div class="bg-black bg-opacity-40 p-6 rounded-xl border border-gray-800 flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium">Контент для взрослых (18+)</h3>
+                                    <p class="text-sm text-gray-500">Включить отображение откровенного контента и аниме (Хентай) в поиске и каталоге.</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="adult-toggle" class="sr-only peer" ${user.settings?.include_adult ? 'checked' : ''}>
+                                    <div class="w-14 h-7 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
+                                </label>
+                            </div>
+                        </section>
+
+                        <section class="pt-6 border-t border-gray-800">
+                            <button id="logout-btn" class="px-6 py-2 bg-gray-800 hover:bg-gray-700 text-red-500 font-semibold rounded-lg transition">
+                                Выйти из аккаунта
+                            </button>
+                        </section>
+                    </div>
+                </div>
+            `;
+            app.appendChild(main);
+            app.insertAdjacentHTML('beforeend', renderFooter());
+
+            // Set up listeners
+            document.getElementById('adult-toggle').addEventListener('change', async (e) => {
+                const checked = e.target.checked;
+                const token = localStorage.getItem('token');
+
+                try {
+                    const response = await fetch('/api/auth/settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token, settings: { include_adult: checked } })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        alert('Настройки сохранены! Обновите страницу для применения изменений.');
+                    }
+                } catch (error) {
+                    console.error('Update settings error:', error);
+                }
+            });
+
+            document.getElementById('logout-btn').addEventListener('click', () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = 'index.html';
+            });
+        }
+
+        initProfilePage();
+    </script>
+</body>
+
+</html>
