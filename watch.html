@@ -7,9 +7,102 @@
     <title>Просмотр - Онлайн Кинотеатр</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/custom.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         .player-aspect {
             aspect-ratio: 16 / 9;
+        }
+
+        .player-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .player-modal-content {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 70vh;
+            overflow-y: auto;
+            border: 1px solid #333;
+        }
+
+        .player-list-item {
+            width: 100%;
+            text-align: left;
+            padding: 12px 16px;
+            background: #2a2a2a;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 8px;
+        }
+
+        .player-list-item:hover {
+            background: #3a3a3a;
+            transform: translateY(-1px);
+        }
+
+        .player-list-item.active {
+            background: #dc2626;
+            box-shadow: 0 0 12px rgba(220, 38, 38, 0.4);
+        }
+
+        .control-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: #2a2a2a;
+            color: #fff;
+            border-color: #555;
+        }
+
+        .control-btn.active {
+            color: #dc2626;
+            border-color: #dc2626;
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1a1a;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            margin-bottom: 8px;
+            border: 1px solid #333;
+        }
+
+        .control-btn:hover .tooltip {
+            opacity: 1;
         }
     </style>
 </head>
@@ -19,10 +112,13 @@
 
     <script type="module">
         import { renderHeader, renderFooter } from './js/components.js';
-        import { getMovieDetails, getTVSeriesDetails, updateWatchProgress, addToHistory } from './js/api.js';
+        import { getMovieDetails, getTVSeriesDetails, addToHistory } from './js/api.js';
         import { initMobileMenu, updateAuthLinks, initSearch } from './js/utils.js';
 
         const app = document.getElementById('app');
+        let players = [];
+        let selectedPlayerIndex = 0;
+        let theaterMode = false;
 
         async function initWatchPage() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -49,12 +145,10 @@
                     addToHistory(item, type).catch(err => console.error('History update failed:', err));
                 }
 
-                const currentProgress = user?.progress?.[`${type}_${id}`] || { season: 1, episode: 1 };
-
                 const main = document.createElement('main');
                 main.className = 'pt-24 pb-12 max-w-6xl mx-auto px-4';
                 main.innerHTML = `
-                    <div class="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div class="mb-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
                         <div>
                             <nav class="flex text-gray-500 text-sm mb-2" aria-label="Breadcrumb">
                                 <ol class="list-none p-0 inline-flex">
@@ -71,88 +165,227 @@
                             </nav>
                             <h1 class="text-3xl md:text-4xl font-black">${title}</h1>
                         </div>
-                        
-                        ${type === 'tv' ? `
-                            <div class="flex items-center gap-4 bg-gray-900 p-3 rounded-xl border border-gray-800">
-                                <div class="flex flex-col">
-                                    <label class="text-[10px] text-gray-500 uppercase font-bold">Сезон</label>
-                                    <input type="number" id="season-input" value="${currentProgress.season}" min="1" class="bg-transparent text-white font-bold w-12 focus:outline-none">
-                                </div>
-                                <div class="w-px h-8 bg-gray-800"></div>
-                                <div class="flex flex-col">
-                                    <label class="text-[10px] text-gray-500 uppercase font-bold">Серия</label>
-                                    <input type="number" id="episode-input" value="${currentProgress.episode}" min="1" class="bg-transparent text-white font-bold w-12 focus:outline-none">
-                                </div>
-                                <button id="save-progress" class="ml-2 p-2 bg-red-600 rounded-lg hover:bg-red-700 transition">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                </button>
-                            </div>
-                        ` : ''}
                     </div>
 
-                    <div class="player-aspect bg-[#0a0a0a] rounded-2xl overflow-hidden shadow-2xl border border-gray-800 flex flex-col items-center justify-center relative group">
-                        <!-- Placeholder Player UI -->
-                        <div class="absolute inset-0 bg-cover bg-center opacity-20" style="background-image: url('https://image.tmdb.org/t/p/original${item.backdrop_path}')"></div>
-                        
-                        <div class="z-10 text-center px-4">
-                            <div class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6 cursor-pointer hover:scale-110 transition duration-300 shadow-lg shadow-red-900/50">
-                                <svg class="w-10 h-10 text-white ml-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M4.5 3.5v13l11-6.5-11-6.5z"></path>
-                                </svg>
-                            </div>
-                            <h2 class="text-2xl font-bold mb-2">Плеер находится в разработке</h2>
-                            <p class="text-gray-400 max-w-md mx-auto">В финальной версии здесь будет располагаться видеоплеер с возможностью выбора озвучки и качества.</p>
-                        </div>
+                    <!-- Player selector button -->
+                    <div class="mb-4 flex items-center gap-3">
+                        <span class="text-gray-400 text-sm">Плеер:</span>
+                        <button id="player-selector-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold text-sm transition flex items-center gap-2">
+                            <span id="current-player-name">Загрузка...</span>
+                            <span class="material-icons text-sm">expand_more</span>
+                        </button>
+                    </div>
 
-                        <!-- Progress Bar Mockup -->
-                        <div class="absolute bottom-0 left-0 right-0 h-1 bg-gray-800">
-                            <div class="h-full bg-red-600 w-1/3"></div>
+                    <!-- Player container -->
+                    <div id="player-wrapper" class="player-aspect bg-[#0a0a0a] rounded-2xl overflow-hidden shadow-2xl border border-gray-800 relative">
+                        <div id="player-container" class="w-full h-full"></div>
+                    </div>
+
+                    <!-- Control buttons -->
+                    <div id="player-controls" class="mt-4 flex items-center gap-3 flex-wrap">
+                        <div class="relative">
+                            <button id="btn-center" class="control-btn" title="Отцентрировать плеер">
+                                <span class="material-icons">center_focus_strong</span>
+                                <span class="tooltip">Отцентрировать</span>
+                            </button>
+                        </div>
+                        <div class="relative">
+                            <button id="btn-theater" class="control-btn" title="Театральный режим">
+                                <span class="material-icons">aspect_ratio</span>
+                                <span class="tooltip">Театральный режим</span>
+                            </button>
+                        </div>
+                        <div class="relative">
+                            <button id="btn-fullscreen" class="control-btn" title="Полный экран">
+                                <span class="material-icons">fullscreen</span>
+                                <span class="tooltip">Полный экран</span>
+                            </button>
+                        </div>
+                        <div class="relative">
+                            <button id="btn-copy-link" class="control-btn" title="Скопировать ссылку">
+                                <span class="material-icons">content_copy</span>
+                                <span class="tooltip">Скопировать ссылку</span>
+                            </button>
                         </div>
                     </div>
 
-                    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div class="bg-gray-900 bg-opacity-50 p-6 rounded-xl border border-gray-800">
-                            <h3 class="font-bold text-xl mb-3 border-b border-red-600 pb-1 w-fit">Полезная информация</h3>
-                            <ul class="space-y-2 text-gray-400 italic">
-                                <li>• Пользуйтесь наушниками для лучшего качества звука</li>
-                                <li>• Если плеер не загружается, попробуйте сменить сервер</li>
-                                <li>• Приятного просмотра!</li>
-                            </ul>
-                        </div>
-                        <div class="bg-gray-900 bg-opacity-50 p-6 rounded-xl border border-gray-800 flex items-center justify-center">
-                            <div class="text-center">
-                                <p class="text-3xl font-bold text-red-600 mb-1">1080p</p>
-                                <p class="text-xs text-gray-500 uppercase tracking-widest">Максимальное качество</p>
+                    <!-- Player modal -->
+                    <div id="player-modal" class="player-modal hidden">
+                        <div class="player-modal-content">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-xl font-bold">Выберите плеер</h2>
+                                <button id="close-modal" class="text-gray-400 hover:text-white text-2xl">&times;</button>
                             </div>
+                            <div id="player-list"></div>
                         </div>
                     </div>
                 `;
                 app.appendChild(main);
 
-                // Progress saving logic
-                if (type === 'tv') {
-                    const saveBtn = document.getElementById('save-progress');
-                    saveBtn.addEventListener('click', async () => {
-                        const season = parseInt(document.getElementById('season-input').value);
-                        const episode = parseInt(document.getElementById('episode-input').value);
+                // Initialize Player
+                const playerContainer = document.getElementById('player-container');
+                const playerSelectorBtn = document.getElementById('player-selector-btn');
+                const currentPlayerName = document.getElementById('current-player-name');
+                const playerModal = document.getElementById('player-modal');
+                const playerList = document.getElementById('player-list');
+                const closeModal = document.getElementById('close-modal');
 
-                        try {
-                            const originalContent = saveBtn.innerHTML;
-                            saveBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
-                            await updateWatchProgress(id, type, { season, episode });
-                            saveBtn.innerHTML = '<svg class="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-                            setTimeout(() => { saveBtn.innerHTML = originalContent; }, 2000);
-                        } catch (err) {
-                            console.error('Failed to save progress:', err);
-                        }
+                // Show loading state
+                playerContainer.innerHTML = `
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                        <svg class="w-10 h-10 animate-spin text-red-600 mb-4" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-gray-400">Загрузка плееров с русской озвучкой...</p>
+                    </div>
+                `;
+
+                try {
+                    const apiUrl = `/api/players?id=${id}&type=${type}`;
+
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) throw new Error('API request failed');
+
+                    const result = await response.json();
+                    players = result.data?.filter(p => p?.iframeUrl && p?.type) || [];
+
+                    if (players.length === 0) {
+                        playerContainer.innerHTML = `
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                <span class="material-icons text-6xl text-gray-700 mb-4">sentiment_dissatisfied</span>
+                                <p class="text-gray-400">Плееры не найдены</p>
+                                <p class="text-gray-600 text-sm mt-1">Попробуйте обновить страницу</p>
+                            </div>
+                        `;
+                        currentPlayerName.textContent = 'Нет плееров';
+                    } else {
+                        // Restore preferred player
+                        const preferredPlayer = localStorage.getItem('preferred_player');
+                        selectedPlayerIndex = players.findIndex(p => p.type === preferredPlayer);
+                        if (selectedPlayerIndex === -1) selectedPlayerIndex = 0;
+
+                        loadPlayer(selectedPlayerIndex);
+                        updatePlayerList();
+                    }
+                } catch (err) {
+                    console.error('Player loading error:', err);
+                    playerContainer.innerHTML = `
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                            <span class="material-icons text-6xl text-red-600 mb-4">error_outline</span>
+                            <p class="text-gray-400">Ошибка загрузки плееров</p>
+                            <p class="text-gray-600 text-sm mt-1">Попробуйте перезагрузить страницу</p>
+                        </div>
+                    `;
+                    currentPlayerName.textContent = 'Ошибка';
+                }
+
+                function loadPlayer(index) {
+                    selectedPlayerIndex = index;
+                    const player = players[index];
+                    playerContainer.innerHTML = `<iframe src="${player.iframeUrl}" class="absolute inset-0 w-full h-full" allowfullscreen></iframe>`;
+
+                    // Update header name
+                    currentPlayerName.textContent = player.type;
+
+                    localStorage.setItem('preferred_player', player.type);
+                }
+
+                function updatePlayerList() {
+                    playerList.innerHTML = '';
+                    players.forEach((player, index) => {
+                        const btn = document.createElement('button');
+                        btn.className = `player-list-item ${index === selectedPlayerIndex ? 'active' : ''}`;
+                        btn.innerHTML = `
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold">${player.type}</span>
+                                <span class="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">
+                                    ${player.lang === 'ru' ? '🇷🇺 RU' : player.lang === 'en' ? '🇺🇸 ENG' : '🌍 Multi'}
+                                </span>
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">${player.name || player.type} - ${player.quality || 'HD'}</div>
+                        `;
+                        btn.addEventListener('click', () => {
+                            loadPlayer(index);
+                            updatePlayerList();
+                            playerModal.classList.add('hidden');
+                        });
+                        playerList.appendChild(btn);
                     });
                 }
+
+                // Event listeners
+                playerSelectorBtn.addEventListener('click', () => {
+                    playerModal.classList.remove('hidden');
+                });
+
+                closeModal.addEventListener('click', () => {
+                    playerModal.classList.add('hidden');
+                });
+
+                playerModal.addEventListener('click', (e) => {
+                    if (e.target === playerModal) {
+                        playerModal.classList.add('hidden');
+                    }
+                });
+
+                // Control buttons
+                document.getElementById('btn-center').addEventListener('click', () => {
+                    document.getElementById('player-wrapper').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+
+                document.getElementById('btn-theater').addEventListener('click', () => {
+                    const wrapper = document.getElementById('player-wrapper');
+                    const btn = document.getElementById('btn-theater');
+                    theaterMode = !theaterMode;
+
+                    if (theaterMode) {
+                        wrapper.style.position = 'fixed';
+                        wrapper.style.inset = '0';
+                        wrapper.style.zIndex = '50';
+                        wrapper.style.borderRadius = '0';
+                        wrapper.style.maxWidth = '100%';
+                        btn.classList.add('active');
+                    } else {
+                        wrapper.style.position = '';
+                        wrapper.style.inset = '';
+                        wrapper.style.zIndex = '';
+                        wrapper.style.borderRadius = '';
+                        wrapper.style.maxWidth = '';
+                        btn.classList.remove('active');
+                    }
+                });
+
+                document.getElementById('btn-fullscreen').addEventListener('click', () => {
+                    const iframe = playerContainer.querySelector('iframe');
+                    if (iframe && iframe.requestFullscreen) {
+                        iframe.requestFullscreen();
+                    }
+                });
+
+                document.getElementById('btn-copy-link').addEventListener('click', () => {
+                    navigator.clipboard.writeText(window.location.href);
+                    const btn = document.getElementById('btn-copy-link');
+                    btn.classList.add('active');
+                    setTimeout(() => btn.classList.remove('active'), 1500);
+                });
+
+                // Escape key closes theater mode and modal
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        if (!playerModal.classList.contains('hidden')) {
+                            playerModal.classList.add('hidden');
+                        } else if (theaterMode) {
+                            document.getElementById('btn-theater').click();
+                        }
+                    }
+                });
 
                 app.insertAdjacentHTML('beforeend', renderFooter());
 
             } catch (error) {
                 console.error('Watch error:', error);
-                app.insertAdjacentHTML('beforeend', '<p class="text-center pt-32">Ошибка при загрузке плеера</p>');
+                app.insertAdjacentHTML('beforeend', '<p class="text-center pt-32">Ошибка при загрузке страницы</p>');
             }
         }
 

@@ -189,6 +189,115 @@ app.post('/api/user/progress', (req, res) => {
     res.json({ user: userWithoutPassword });
 });
 
+// API endpoint to get video players
+// API endpoint to get video players
+app.get('/api/players', async (req, res) => {
+    try {
+        const { id, type } = req.query;
+
+        if (!id) {
+            return res.status(400).json({ error: 'Missing id parameter' });
+        }
+
+        const mediaType = type === 'tv' ? 'tv' : 'movie';
+        let players = [];
+        let kinopoiskId = null;
+        let imdbId = null;
+
+        // 1. Get External IDs from TMDB (IMDB ID)
+        try {
+            const externalIdsResponse = await axios.get(`https://api.themoviedb.org/3/${mediaType}/${id}/external_ids`, {
+                params: { api_key: process.env.TMDB_API_KEY }
+            });
+            imdbId = externalIdsResponse.data.imdb_id;
+        } catch (e) {
+            console.error('Failed to get TMDB external IDs:', e.message);
+        }
+
+        // 2. Try to get Kinopoisk ID via Alloha API (using public token)
+        try {
+            const allohaToken = '04941a9a3ca3ac16e2b4327347bbc1';
+            const allohaUrl = `https://api.alloha.tv/?token=${allohaToken}&tmdb=${id}`;
+            const allohaResponse = await axios.get(allohaUrl);
+
+            if (allohaResponse.data && allohaResponse.data.status === 'success' && allohaResponse.data.data) {
+                kinopoiskId = allohaResponse.data.data.id_kp;
+            }
+        } catch (e) {
+            console.error('Alloha API check failed:', e.message);
+        }
+
+        // 3. If we have Kinopoisk ID, fetch Russian players from Reyohoho
+        if (kinopoiskId) {
+            try {
+                const reyohohoResponse = await axios.post('https://api4.rhserv.vu/cache',
+                    `kinopoisk=${kinopoiskId}`,
+                    {
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        timeout: 5000
+                    }
+                );
+
+                if (Array.isArray(reyohohoResponse.data)) {
+                    const ruPlayers = reyohohoResponse.data
+                        .filter(p => p.iframe)
+                        .map(p => ({
+                            type: p.translate || p.name,
+                            name: p.name,
+                            iframeUrl: p.iframe,
+                            quality: p.quality || 'HD',
+                            lang: 'ru'
+                        }));
+                    players.push(...ruPlayers);
+                }
+            } catch (e) {
+                console.error('Reyohoho API failed:', e.message);
+            }
+        }
+
+        // 4. Add fallback English/International players (always valid)
+        // VidSrc - supports both TMDB and IMDB
+        players.push({
+            type: 'VidSrc (ENG)',
+            name: 'vidsrc',
+            iframeUrl: type === 'tv'
+                ? `https://vidsrc.xyz/embed/tv/${id}`
+                : `https://vidsrc.xyz/embed/movie/${id}`,
+            quality: 'HD',
+            lang: 'en'
+        });
+
+        players.push({
+            type: 'VidSrc.to (ENG)',
+            name: 'vidsrcto',
+            iframeUrl: type === 'tv'
+                ? `https://vidsrc.to/embed/tv/${id}`
+                : `https://vidsrc.to/embed/movie/${id}`,
+            quality: 'HD',
+            lang: 'en'
+        });
+
+        // SuperEmbed (Multi-lang aggregator)
+        if (imdbId) {
+            players.push({
+                type: 'SuperEmbed (Multi)',
+                name: 'superembed',
+                iframeUrl: `https://multiembed.mov/?video_id=${imdbId}&tmdb=1`,
+                quality: 'HD',
+                lang: 'multi'
+            });
+        }
+
+        res.json({ data: players });
+
+
+
+    } catch (error) {
+        console.error('Players API Error:', error.message);
+        res.status(500).json({ error: 'Failed to fetch players', data: [] });
+    }
+});
+
 // Proxy for TMDB API
 app.get('/api/tmdb/*', async (req, res) => {
     try {
