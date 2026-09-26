@@ -36,10 +36,6 @@
     <td width="50%"><a href="docs/media/movies.jpg"><img src="docs/media/movies.jpg" alt="Каталог фильмов Encelada — реальный скриншот" width="100%"></a><p align="center"><strong>Фильмы</strong><br>Реальный каталог с подборками</p></td>
     <td width="50%"><a href="docs/media/series.jpg"><img src="docs/media/series.jpg" alt="Каталог сериалов Encelada — реальный скриншот" width="100%"></a><p align="center"><strong>Сериалы</strong><br>Реальный баннер и список сериалов</p></td>
   </tr>
-  <tr>
-    <td width="50%"><a href="docs/media/login.jpg"><img src="docs/media/login.jpg" alt="Страница входа Encelada — реальный скриншот" width="100%"></a><p align="center"><strong>Вход</strong><br>Авторизация пользователя</p></td>
-    <td width="50%"><a href="docs/media/register.jpg"><img src="docs/media/register.jpg" alt="Страница регистрации Encelada — реальный скриншот" width="100%"></a><p align="center"><strong>Регистрация</strong><br>Создание нового аккаунта</p></td>
-  </tr>
 </table>
 
 > Снимки сделаны в локально запущенном приложении. Состав каталога и баннеры загружаются из подключённых API и могут меняться.
@@ -121,10 +117,6 @@ HTML-страницы → ES-модули в js/ → /api/* → Express (server.
   <tr>
     <td width="50%"><a href="docs/media/movies.jpg"><img src="docs/media/movies.jpg" alt="Encelada movies catalog — real screenshot" width="100%"></a><p align="center"><strong>Movies</strong><br>Live catalog and collections</p></td>
     <td width="50%"><a href="docs/media/series.jpg"><img src="docs/media/series.jpg" alt="Encelada series catalog — real screenshot" width="100%"></a><p align="center"><strong>Series</strong><br>Real featured banner and series list</p></td>
-  </tr>
-  <tr>
-    <td width="50%"><a href="docs/media/login.jpg"><img src="docs/media/login.jpg" alt="Encelada sign-in page — real screenshot" width="100%"></a><p align="center"><strong>Sign in</strong><br>User authentication</p></td>
-    <td width="50%"><a href="docs/media/register.jpg"><img src="docs/media/register.jpg" alt="Encelada registration page — real screenshot" width="100%"></a><p align="center"><strong>Registration</strong><br>Create a new account</p></td>
   </tr>
 </table>
 
