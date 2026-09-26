@@ -36,6 +36,17 @@
     <td width="50%"><a href="docs/media/movies.jpg"><img src="docs/media/movies.jpg" alt="Каталог фильмов Encelada — реальный скриншот" width="100%"></a><p align="center"><strong>Фильмы</strong><br>Реальный каталог с подборками</p></td>
     <td width="50%"><a href="docs/media/series.jpg"><img src="docs/media/series.jpg" alt="Каталог сериалов Encelada — реальный скриншот" width="100%"></a><p align="center"><strong>Сериалы</strong><br>Реальный баннер и список сериалов</p></td>
   </tr>
+  <tr>
+    <td width="50%"><a href="docs/media/profile-dashboard.png"><img src="docs/media/profile-dashboard.png" alt="Профиль пользователя Encelada со статистикой" width="100%"></a><p align="center"><strong>Профиль и статистика</strong><br>Дашборд, история и график просмотров</p></td>
+    <td width="50%"><a href="docs/media/login.png"><img src="docs/media/login.png" alt="Страница входа Encelada" width="100%"></a><p align="center"><strong>Вход</strong><br>Авторизация в аккаунте</p></td>
+  </tr>
+  <tr>
+    <td width="50%"><a href="docs/media/trends-filters.png"><img src="docs/media/trends-filters.png" alt="Фильтры страницы трендов Encelada" width="100%"></a><p align="center"><strong>Тренды и фильтры</strong><br>Категории и жанры подборок</p></td>
+    <td width="50%"><a href="docs/media/anime-hero.png"><img src="docs/media/anime-hero.png" alt="Баннер страницы аниме Encelada" width="100%"></a><p align="center"><strong>Аниме: баннер</strong><br>Онгоинги и навигация по каталогу</p></td>
+  </tr>
+  <tr>
+    <td colspan="2"><a href="docs/media/anime-catalog.png"><img src="docs/media/anime-catalog.png" alt="Каталог аниме Encelada" width="100%"></a><p align="center"><strong>Аниме: каталог</strong><br>Карточки тайтлов, рейтинги и фильтры</p></td>
+  </tr>
 </table>
 
 > Снимки сделаны в локально запущенном приложении. Состав каталога и баннеры загружаются из подключённых API и могут меняться.
@@ -117,6 +128,17 @@ HTML-страницы → ES-модули в js/ → /api/* → Express (server.
   <tr>
     <td width="50%"><a href="docs/media/movies.jpg"><img src="docs/media/movies.jpg" alt="Encelada movies catalog — real screenshot" width="100%"></a><p align="center"><strong>Movies</strong><br>Live catalog and collections</p></td>
     <td width="50%"><a href="docs/media/series.jpg"><img src="docs/media/series.jpg" alt="Encelada series catalog — real screenshot" width="100%"></a><p align="center"><strong>Series</strong><br>Real featured banner and series list</p></td>
+  </tr>
+  <tr>
+    <td width="50%"><a href="docs/media/profile-dashboard.png"><img src="docs/media/profile-dashboard.png" alt="Encelada profile dashboard with statistics" width="100%"></a><p align="center"><strong>Profile & statistics</strong><br>Dashboard, history and watch chart</p></td>
+    <td width="50%"><a href="docs/media/login.png"><img src="docs/media/login.png" alt="Encelada sign-in page" width="100%"></a><p align="center"><strong>Sign in</strong><br>Account authentication</p></td>
+  </tr>
+  <tr>
+    <td width="50%"><a href="docs/media/trends-filters.png"><img src="docs/media/trends-filters.png" alt="Encelada trends filters" width="100%"></a><p align="center"><strong>Trends & filters</strong><br>Categories and genre controls</p></td>
+    <td width="50%"><a href="docs/media/anime-hero.png"><img src="docs/media/anime-hero.png" alt="Encelada anime hero banner" width="100%"></a><p align="center"><strong>Anime hero</strong><br>Ongoing entry point and navigation</p></td>
+  </tr>
+  <tr>
+    <td colspan="2"><a href="docs/media/anime-catalog.png"><img src="docs/media/anime-catalog.png" alt="Encelada anime catalog" width="100%"></a><p align="center"><strong>Anime catalog</strong><br>Title cards, ratings and filters</p></td>
   </tr>
 </table>
 
