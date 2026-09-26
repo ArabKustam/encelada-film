@@ -48,6 +48,11 @@
   <tr>
     <td colspan="2"><a href="docs/media/anime-catalog.png"><img src="docs/media/anime-catalog.png" alt="Каталог аниме Encelada" width="100%"></a><p align="center"><strong>Аниме: каталог</strong><br>Карточки тайтлов, рейтинги и фильтры</p></td>
   </tr>
+  <tr>
+    <td width="50%"><a href="docs/media/details-main.png"><img src="docs/media/details-main.png" alt="Страница фильма Encelada с трейлером" width="100%"></a><p align="center"><strong>Страница фильма</strong><br>Описание, трейлер и список пользователя</p></td>
+    <td width="50%"><a href="docs/media/details-cast-rating.png"><img src="docs/media/details-cast-rating.png" alt="Актёры и оценка фильма Encelada" width="100%"></a><p align="center"><strong>Актёры и оценка</strong><br>Создатели, рейтинг и комментарии</p></td>
+  </tr>
+  <tr><td colspan="2"><a href="docs/media/details-comments.png"><img src="docs/media/details-comments.png" alt="Комментарии к фильму Encelada" width="100%"></a><p align="center"><strong>Комментарии</strong><br>Отзывы, спойлеры и реакции пользователей</p></td></tr>
 </table>
 
 > Снимки сделаны в локально запущенном приложении. Состав каталога и баннеры загружаются из подключённых API и могут меняться.
@@ -142,6 +147,11 @@ HTML-страницы → ES-модули в js/ → /api/* → Express (server.
   <tr>
     <td colspan="2"><a href="docs/media/anime-catalog.png"><img src="docs/media/anime-catalog.png" alt="Encelada anime catalog" width="100%"></a><p align="center"><strong>Anime catalog</strong><br>Title cards, ratings and filters</p></td>
   </tr>
+  <tr>
+    <td width="50%"><a href="docs/media/details-main.png"><img src="docs/media/details-main.png" alt="Encelada title details with trailer" width="100%"></a><p align="center"><strong>Title details</strong><br>Description, trailer and watchlist</p></td>
+    <td width="50%"><a href="docs/media/details-cast-rating.png"><img src="docs/media/details-cast-rating.png" alt="Encelada cast and rating" width="100%"></a><p align="center"><strong>Cast & rating</strong><br>Creators, rating and discussion</p></td>
+  </tr>
+  <tr><td colspan="2"><a href="docs/media/details-comments.png"><img src="docs/media/details-comments.png" alt="Encelada title comments" width="100%"></a><p align="center"><strong>Comments</strong><br>Reviews, spoilers and reactions</p></td></tr>
 </table>
 
 > Screenshots were captured from the locally running app. Catalog titles and banners come from connected APIs and may change.
