@@ -8,6 +8,7 @@ dist/
 
 # Local data
 data/*.json
+data/*.db*
 !data/.gitkeep
 
 # Logs
@@ -20,3 +21,6 @@ yarn-error.log*
 .idea/
 *.swp
 *.swo
+
+# repokit working files
+.repokit/

@@ -1,218 +1,175 @@
 <div align="center">
-  <img src="images/logo.webp" alt="Encelada logo" width="100" height="100">
-  <h1>ENCELADA</h1>
-  <p><strong>Movies, series, anime — all in one personal cinema.</strong></p>
-  <p>Онлайн-кинотеатр с поиском, коллекцией, историей просмотра и расписанием аниме.</p>
+  <img src="docs/media/banner.png" alt="Баннер Encelada: название, описание, технологии и скриншот главной страницы" width="100%">
+  <h1><img src="images/logo.webp" alt="Логотип Encelada" width="36" height="36" align="top"> ENCELADA</h1>
+  <p><strong>Веб-кинотеатр для фильмов, сериалов и аниме: каталог с поиском, личная библиотека, история просмотра и расписание онгоингов.</strong></p>
+  <p>
+    <a href="#запуск-локально">Запуск</a> ·
+    <a href="#возможности">Возможности</a> ·
+    <a href="#демо">Демо</a> ·
+    <a href="#как-это-устроено">Как это устроено</a> ·
+    <a href="ARCHITECTURE.md">Архитектура</a> ·
+    <a href="README.en.md">English</a>
+  </p>
   <p>
     <img src="https://img.shields.io/badge/Node.js-20%2B-339933?logo=nodedotjs&logoColor=white" alt="Node.js 20+">
     <img src="https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white" alt="Express 4">
     <img src="https://img.shields.io/badge/Database-SQLite-003B57?logo=sqlite&logoColor=white" alt="SQLite">
     <img src="https://img.shields.io/badge/UI-Vanilla%20JS-F7DF1E?logo=javascript&logoColor=111111" alt="Vanilla JavaScript">
   </p>
-  <p><a href="#ru">🇷🇺 Читать по-русски</a> &nbsp;·&nbsp; <a href="#en">🇬🇧 Read in English</a></p>
 </div>
 
 <div align="center">
-  <img src="docs/media/home.jpg" alt="Главная Encelada — скриншот работающего приложения" width="100%">
-  <p><strong>Скриншоты сняты в работающем приложении</strong> · Captured from the running app</p>
+  <img src="docs/media/demo.gif" alt="Запись работающего приложения: главная с баннером, прокрутка каталога, переход на страницу сериала с описанием и трейлером" width="100%">
 </div>
 
----
+<sub>Запись сделана в локально запущенном приложении по сценарию <a href="demo.scenario.yaml">demo.scenario.yaml</a>. Состав каталога и баннеры приходят из подключённых API и меняются со временем.</sub>
 
-<a id="ru"></a>
+## Возможности
 
-## По-русски
+- Отдельные каталоги фильмов, сериалов, аниме и трендов.
+- Поиск и фильтрация по жанрам; популярное за 1, 7 и 30 дней.
+- Для аниме — онгоинги и недельное расписание выходов по датам из TMDB.
+- Страница тайтла: описание, трейлер, актёры и создатели, оценка, комментарии с голосованием.
+- Аккаунт, личная библиотека, история просмотров и прогресс; вход через Telegram, если настроен бот.
+- Настройки интерфейса и фильтр контента 18+.
+- Интерфейс и запросы к TMDB на русском языке; пользовательские данные и кеш — в SQLite.
 
-**Encelada** — веб-кинотеатр для фильмов, сериалов и аниме. В каталоге есть поиск и подборки по периодам популярности; личный раздел хранит коллекцию и историю, а для аниме показывает отдельный обзор онгоингов.
+## Демо
 
-### Демонстрация интерфейса
+Всё ниже — записи и скриншоты локально запущенного приложения; оформление в 3D добавлено при монтаже.
 
-<table>
-  <tr>
-    <td width="50%"><a href="docs/media/home.jpg"><img src="docs/media/home.jpg" alt="Главная страница Encelada — реальный скриншот" width="100%"></a><p align="center"><strong>Главная</strong><br>Настоящий баннер и каталог</p></td>
-    <td width="50%"><a href="docs/media/anime.jpg"><img src="docs/media/anime.jpg" alt="Каталог аниме Encelada — реальный скриншот" width="100%"></a><p align="center"><strong>Аниме</strong><br>Реальный каталог и обложки тайтлов</p></td>
-  </tr>
-  <tr>
-    <td width="50%"><a href="docs/media/movies.jpg"><img src="docs/media/movies.jpg" alt="Каталог фильмов Encelada — реальный скриншот" width="100%"></a><p align="center"><strong>Фильмы</strong><br>Реальный каталог с подборками</p></td>
-    <td width="50%"><a href="docs/media/series.jpg"><img src="docs/media/series.jpg" alt="Каталог сериалов Encelada — реальный скриншот" width="100%"></a><p align="center"><strong>Сериалы</strong><br>Реальный баннер и список сериалов</p></td>
-  </tr>
-  <tr>
-    <td width="50%"><a href="docs/media/profile-dashboard.png"><img src="docs/media/profile-dashboard.png" alt="Профиль пользователя Encelada со статистикой" width="100%"></a><p align="center"><strong>Профиль и статистика</strong><br>Дашборд, история и график просмотров</p></td>
-    <td width="50%"><a href="docs/media/login.png"><img src="docs/media/login.png" alt="Страница входа Encelada" width="100%"></a><p align="center"><strong>Вход</strong><br>Авторизация в аккаунте</p></td>
-  </tr>
-  <tr><td colspan="2"><a href="docs/media/stats-chart.png"><img src="docs/media/stats-chart.png" alt="Диаграмма статистики просмотров Encelada" width="100%"></a><p align="center"><strong>Статистика просмотров</strong></p></td></tr>
-  <tr>
-    <td width="50%"><a href="docs/media/trends-filters.png"><img src="docs/media/trends-filters.png" alt="Фильтры страницы трендов Encelada" width="100%"></a><p align="center"><strong>Тренды и фильтры</strong><br>Категории и жанры подборок</p></td>
-    <td width="50%"><a href="docs/media/anime-hero.png"><img src="docs/media/anime-hero.png" alt="Баннер страницы аниме Encelada" width="100%"></a><p align="center"><strong>Аниме: баннер</strong><br>Онгоинги и навигация по каталогу</p></td>
-  </tr>
-  <tr>
-    <td colspan="2"><a href="docs/media/anime-catalog.png"><img src="docs/media/anime-catalog.png" alt="Каталог аниме Encelada" width="100%"></a><p align="center"><strong>Аниме: каталог</strong><br>Карточки тайтлов, рейтинги и фильтры</p></td>
-  </tr>
-  <tr>
-    <td width="50%"><a href="docs/media/details-main.png"><img src="docs/media/details-main.png" alt="Страница фильма Encelada с трейлером" width="100%"></a><p align="center"><strong>Страница фильма</strong><br>Описание, трейлер и список пользователя</p></td>
-    <td width="50%"><a href="docs/media/details-cast-rating.png"><img src="docs/media/details-cast-rating.png" alt="Актёры и оценка фильма Encelada" width="100%"></a><p align="center"><strong>Актёры и оценка</strong><br>Создатели, рейтинг и комментарии</p></td>
-  </tr>
-  <tr><td colspan="2"><a href="docs/media/details-comments.png"><img src="docs/media/details-comments.png" alt="Комментарии к фильму Encelada" width="100%"></a><p align="center"><strong>Комментарии</strong><br>Отзывы, спойлеры и реакции пользователей</p></td></tr>
-</table>
+| Живой поиск | Аниме: онгоинги и расписание |
+|---|---|
+| ![В строку поиска вводится «Интерстеллар», под ней появляются результаты с постерами](docs/media/demo-search.gif) | ![Страница аниме: прокрутка каталога и переключение на недельное расписание онгоингов](docs/media/demo-anime.gif) |
 
-> Снимки сделаны в локально запущенном приложении. Состав каталога и баннеры загружаются из подключённых API и могут меняться.
+### Страницы
 
-### Возможности
+| Карусель | Куб |
+|---|---|
+| ![Пять страниц приложения сменяют друг друга: главная, фильмы, аниме, страница тайтла, сериалы](docs/media/pages-carousel.gif) | ![Четыре страницы приложения на гранях вращающегося куба](docs/media/pages-cube.gif) |
 
-- Отдельные каталоги фильмов, сериалов, аниме и текущих трендов.
-- Поиск и фильтрация по жанрам; популярность за 1, 7 и 30 дней.
-- Для аниме — онгоинги и расписание выходов с датами из TMDB.
-- Аккаунт, персональная библиотека, история просмотров и прогресс.
-- Настройка интерфейса и фильтр контента 18+.
-- Русский язык интерфейса и TMDB; SQLite для пользовательских данных и кеша.
+| Стопка | Стена |
+|---|---|
+| ![Страницы лежат стопкой, верхняя улетает и открывает следующую](docs/media/pages-stack.gif) | ![Страницы стоят в ряд, камера проезжает вдоль них](docs/media/pages-wall.gif) |
 
-### Запуск локально
+### На компьютере и на телефоне
 
-**Нужно:** Node.js 20 или новее, npm и ключ TMDB API. SQLite устанавливать отдельно не нужно: используется пакет `better-sqlite3`.
+| Ноутбук и телефон | Мобильная версия |
+|---|---|
+| ![Страница фильма на ноутбуке и та же страница на телефоне](docs/media/devices-duo.gif) | ![Четыре телефона: главная, фильмы, аниме и страница тайтла в мобильной вёрстке](docs/media/phones-row.gif) |
+
+## Интерфейс
+
+| Главная | Каталог аниме |
+|---|---|
+| ![Главная страница: баннер с рекомендуемым тайтлом и подборки](docs/media/home.jpg) | ![Каталог аниме: карточки тайтлов с рейтингами и фильтры](docs/media/anime-catalog.jpg) |
+
+| Страница тайтла | Профиль и статистика |
+|---|---|
+| ![Страница фильма: постер, описание, трейлер и добавление в список](docs/media/details-main.jpg) | ![Профиль пользователя: дашборд, история и график просмотров](docs/media/profile-dashboard.png) |
+
+<details>
+<summary>Ещё скриншоты: фильмы, сериалы, тренды, комментарии, статистика, вход</summary>
+
+| Фильмы | Сериалы |
+|---|---|
+| ![Каталог фильмов с подборками](docs/media/movies.jpg) | ![Каталог сериалов с баннером](docs/media/series.jpg) |
+
+| Аниме | Аниме: баннер онгоингов |
+|---|---|
+| ![Страница аниме с обложками тайтлов](docs/media/anime.jpg) | ![Баннер страницы аниме и навигация по каталогу](docs/media/anime-hero.jpg) |
+
+| Тренды и фильтры | Актёры и оценка |
+|---|---|
+| ![Страница трендов: категории и жанры подборок](docs/media/trends-filters.png) | ![Блок с актёрами, создателями и оценкой фильма](docs/media/details-cast-rating.png) |
+
+| Комментарии | Статистика просмотров |
+|---|---|
+| ![Комментарии к фильму: отзывы, спойлеры и реакции](docs/media/details-comments.png) | ![Диаграмма статистики просмотров](docs/media/stats-chart.png) |
+
+![Страница входа в аккаунт](docs/media/login.png)
+
+</details>
+
+## Запуск локально
+
+Нужны Node.js 20 или новее, npm и ключ [TMDB API](https://www.themoviedb.org/settings/api). SQLite ставить отдельно не нужно: используется пакет `better-sqlite3`.
 
 ```bash
-git clone <URL-ВАШЕГО-РЕПОЗИТОРИЯ>
+git clone https://github.com/ArabKustam/encelada-film.git
 cd encelada-film
 npm install
 ```
 
-Создай `.env` из шаблона и добавь ключ TMDB. Telegram-вход включается, если также заполнить данные бота.
+Создайте `.env` из шаблона и впишите в него `TMDB_API_KEY`:
 
 ```bash
-# macOS / Linux / Git Bash
 cp .env.example .env
-
-# Windows PowerShell
-Copy-Item .env.example .env
 ```
 
-Укажи секреты и запусти сервер:
-
-```dotenv
-TMDB_API_KEY=your_tmdb_api_key
-```
+В Windows PowerShell вместо `cp` — `Copy-Item .env.example .env`.
 
 ```bash
 npm start
 ```
 
-Открой адрес, напечатанный в консоли. Сервер по умолчанию использует порт `3000`; если он занят, приложение попробует следующий свободный порт. SQLite-база создаётся в `data/cinema.db`.
+Откройте адрес, напечатанный в консоли. По умолчанию это порт `3000`; если он занят и `PORT` не задан, сервер попробует следующий свободный. База SQLite создаётся в `data/cinema.db`.
 
-### Переменные окружения
+## Настройка
 
-Шаблон — в [`.env.example`](.env.example). Минимально необходим `TMDB_API_KEY`. Остальные интеграции включаются при наличии их соответствующих ключей. Не коммить `.env` и реальные секреты.
+Сервер читает пять переменных окружения:
 
-### Архитектура
+| Переменная | Обязательна | Для чего |
+|---|---|---|
+| `TMDB_API_KEY` | да | каталог, поиск, страницы тайтлов |
+| `PORT` | нет | порт сервера, по умолчанию `3000` |
+| `FANART_API_KEY` | нет | фоны и логотипы тайтлов с Fanart.tv; без ключа они просто не показываются |
+| `TELEGRAM_BOT_TOKEN` | нет | вход через Telegram |
+| `TELEGRAM_BOT_NAME` | нет | вход через Telegram |
 
-```text
-HTML-страницы → ES-модули в js/ → /api/* → Express (server.js)
-                                        ├─ TMDB и Fanart API
-                                        └─ SQLite (backend/db.js)
+Остальные строки шаблона [`.env.example`](.env.example) текущая версия сервера не использует. Не коммитьте `.env` и настоящие ключи.
+
+## Как это устроено
+
+![Схема: пользователь, скриншот интерфейса, сервер Express и модули backend; по связям проходят запросы, внизу подписи с методом, путём и строкой обработчика](docs/media/how-it-works.gif)
+
+Разбор построен по коду: связи — это импорты и обращения страниц к `/api/*`, подписи — настоящие маршруты из `server.js` с номерами строк.
+
+
+```mermaid
+flowchart LR
+  user(["Пользователь"])
+  pages["HTML-страницы<br/>ES-модули в js/"]
+  server["server.js<br/>Express, /api/*"]
+  backend["backend/<br/>каталог, фильтр контента"]
+  db[("SQLite<br/>data/cinema.db")]
+  ext["TMDB · Fanart · Telegram"]
+  user --> pages
+  pages -- HTTP --> server
+  server --> backend
+  backend --> db
+  server --> ext
 ```
 
-Краткая карта модулей, API и команд находится в [`ARCHITECTURE.md`](ARCHITECTURE.md).
+Сборщика нет: страницы подключают браузерные ES-модули напрямую, сервер отдаёт статику и API. Карта модулей, устройство подборок и фильтра контента — в [ARCHITECTURE.md](ARCHITECTURE.md).
 
-### Благодарности
-
-Данные и изображения каталога предоставляет [The Movie Database (TMDB)](https://www.themoviedb.org/). Этот проект не одобрен TMDB и не связан с ним. Соблюдай условия использования подключённых API и сервисов.
-
----
-
-<a id="en"></a>
-
-## English
-
-**Encelada** is a web cinema for movies, series and anime. Browse and search the catalog, explore time-based popularity, keep a personal watch history and library, or open a dedicated anime airing schedule.
-
-### UI gallery
-
-<table>
-  <tr>
-    <td width="50%"><a href="docs/media/home.jpg"><img src="docs/media/home.jpg" alt="Encelada home page — real screenshot" width="100%"></a><p align="center"><strong>Home</strong><br>Real featured banner and catalog</p></td>
-    <td width="50%"><a href="docs/media/anime.jpg"><img src="docs/media/anime.jpg" alt="Encelada anime catalog — real screenshot" width="100%"></a><p align="center"><strong>Anime</strong><br>Live catalog and title artwork</p></td>
-  </tr>
-  <tr>
-    <td width="50%"><a href="docs/media/movies.jpg"><img src="docs/media/movies.jpg" alt="Encelada movies catalog — real screenshot" width="100%"></a><p align="center"><strong>Movies</strong><br>Live catalog and collections</p></td>
-    <td width="50%"><a href="docs/media/series.jpg"><img src="docs/media/series.jpg" alt="Encelada series catalog — real screenshot" width="100%"></a><p align="center"><strong>Series</strong><br>Real featured banner and series list</p></td>
-  </tr>
-  <tr>
-    <td width="50%"><a href="docs/media/profile-dashboard.png"><img src="docs/media/profile-dashboard.png" alt="Encelada profile dashboard with statistics" width="100%"></a><p align="center"><strong>Profile & statistics</strong><br>Dashboard, history and watch chart</p></td>
-    <td width="50%"><a href="docs/media/login.png"><img src="docs/media/login.png" alt="Encelada sign-in page" width="100%"></a><p align="center"><strong>Sign in</strong><br>Account authentication</p></td>
-  </tr>
-  <tr><td colspan="2"><a href="docs/media/stats-chart.png"><img src="docs/media/stats-chart.png" alt="Encelada watch statistics chart" width="100%"></a><p align="center"><strong>Watch statistics</strong></p></td></tr>
-  <tr>
-    <td width="50%"><a href="docs/media/trends-filters.png"><img src="docs/media/trends-filters.png" alt="Encelada trends filters" width="100%"></a><p align="center"><strong>Trends & filters</strong><br>Categories and genre controls</p></td>
-    <td width="50%"><a href="docs/media/anime-hero.png"><img src="docs/media/anime-hero.png" alt="Encelada anime hero banner" width="100%"></a><p align="center"><strong>Anime hero</strong><br>Ongoing entry point and navigation</p></td>
-  </tr>
-  <tr>
-    <td colspan="2"><a href="docs/media/anime-catalog.png"><img src="docs/media/anime-catalog.png" alt="Encelada anime catalog" width="100%"></a><p align="center"><strong>Anime catalog</strong><br>Title cards, ratings and filters</p></td>
-  </tr>
-  <tr>
-    <td width="50%"><a href="docs/media/details-main.png"><img src="docs/media/details-main.png" alt="Encelada title details with trailer" width="100%"></a><p align="center"><strong>Title details</strong><br>Description, trailer and watchlist</p></td>
-    <td width="50%"><a href="docs/media/details-cast-rating.png"><img src="docs/media/details-cast-rating.png" alt="Encelada cast and rating" width="100%"></a><p align="center"><strong>Cast & rating</strong><br>Creators, rating and discussion</p></td>
-  </tr>
-  <tr><td colspan="2"><a href="docs/media/details-comments.png"><img src="docs/media/details-comments.png" alt="Encelada title comments" width="100%"></a><p align="center"><strong>Comments</strong><br>Reviews, spoilers and reactions</p></td></tr>
-</table>
-
-> Screenshots were captured from the locally running app. Catalog titles and banners come from connected APIs and may change.
-
-### Features
-
-- Separate movie, TV, anime and trending catalogs.
-- Search, genre filters and 1-, 7- and 30-day popularity views.
-- Anime ongoing list and a weekly calendar based on TMDB air dates.
-- User accounts, a personal library, watch history and playback progress.
-- Interface preferences and an 18+ content filter.
-- Russian-language interface and TMDB queries; SQLite for user data and caching.
-
-### Run locally
-
-**Requirements:** Node.js 20 or later, npm and a TMDB API key. No standalone SQLite installation is required; the app uses `better-sqlite3`.
+## Тесты
 
 ```bash
-git clone <YOUR-REPOSITORY-URL>
-cd encelada-film
-npm install
+node --test tests/*.test.cjs
 ```
 
-Create `.env` from the template and add your TMDB key. Telegram sign-in is optional and requires bot credentials.
+Регрессионные проверки настроек 18+, истории, подборок, API и закрытой статики. Пользовательскую базу они не меняют.
 
-```bash
-# macOS / Linux / Git Bash
-cp .env.example .env
+## Ограничения
 
-# Windows PowerShell
-Copy-Item .env.example .env
-```
+- Авторизация упрощённая: токен сессии не подписан, пароли хешируются SHA-256 без соли. Проект рассчитан на локальный запуск; перед публичным развёртыванием авторизацию нужно заменить.
+- Каталог целиком зависит от внешних API: без `TMDB_API_KEY` и сети страницы останутся пустыми.
+- Даты в расписании аниме — даты оригинального эфира из TMDB; сроки русской озвучки источник не даёт.
+- Файла лицензии в репозитории пока нет.
 
-Set the required secret and start the server:
+## Благодарности
 
-```dotenv
-TMDB_API_KEY=your_tmdb_api_key
-```
+Данные и изображения каталога предоставляет [The Movie Database (TMDB)](https://www.themoviedb.org/). Этот проект не одобрен TMDB и не связан с ним. Соблюдайте условия использования подключённых API и сервисов.
 
-```bash
-npm start
-```
-
-Open the address printed in the terminal. The default port is `3000`; if it is occupied, the server tries the next available port. The SQLite database is created at `data/cinema.db`.
-
-### Environment variables
-
-See [`.env.example`](.env.example). `TMDB_API_KEY` is required. Other integrations use their respective credentials when configured. Do not commit `.env` or real API secrets.
-
-### Architecture
-
-```text
-HTML pages → ES modules in js/ → /api/* → Express (server.js)
-                                          ├─ TMDB and Fanart APIs
-                                          └─ SQLite (backend/db.js)
-```
-
-See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the module map, API flow and commands.
-
-### Credits
-
-Catalog data and imagery are provided by [The Movie Database (TMDB)](https://www.themoviedb.org/). This project is not endorsed by or affiliated with TMDB. Please follow the terms of the APIs and services you connect.
-
-<div align="center"><sub>Built for people who love a good story. · Сделано для тех, кто любит хорошие истории.</sub></div>
+<div align="center"><sub>Сделано для тех, кто любит хорошие истории.</sub></div>
